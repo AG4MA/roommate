@@ -1,0 +1,144 @@
+import { z } from 'zod';
+
+// ==================== User Schemas ====================
+
+export const registerSchema = z.object({
+  email: z.string().email('Email non valida'),
+  password: z.string().min(8, 'Password deve essere almeno 8 caratteri'),
+  name: z.string().min(2, 'Nome richiesto'),
+  userType: z.enum(['tenant', 'landlord']),
+});
+
+export const loginSchema = z.object({
+  email: z.string().email('Email non valida'),
+  password: z.string().min(1, 'Password richiesta'),
+});
+
+export const updateProfileSchema = z.object({
+  name: z.string().min(2).optional(),
+  phone: z.string().optional(),
+  bio: z.string().max(500).optional(),
+  dateOfBirth: z.string().optional(),
+  gender: z.enum(['MALE', 'FEMALE', 'OTHER']).optional(),
+  occupation: z.enum(['STUDENT', 'WORKING', 'FREELANCER', 'UNEMPLOYED', 'RETIRED']).optional(),
+});
+
+// ==================== Listing Schemas ====================
+
+export const createListingSchema = z.object({
+  title: z.string().min(10, 'Titolo troppo corto').max(100),
+  description: z.string().min(50, 'Descrizione troppo corta').max(2000),
+  address: z.string().min(5, 'Indirizzo richiesto'),
+  city: z.string().min(2, 'Città richiesta'),
+  neighborhood: z.string().optional(),
+  postalCode: z.string().optional(),
+  latitude: z.number(),
+  longitude: z.number(),
+  roomType: z.enum(['SINGLE', 'DOUBLE', 'STUDIO', 'ENTIRE_PLACE']),
+  roomSize: z.number().min(5).max(100),
+  totalSize: z.number().optional(),
+  floor: z.number().optional(),
+  hasElevator: z.boolean().default(false),
+  price: z.number().min(50).max(5000),
+  expenses: z.number().default(0),
+  deposit: z.number().min(0),
+  availableFrom: z.string(),
+  minStay: z.number().default(6),
+  maxStay: z.number().optional(),
+});
+
+export const listingFeaturesSchema = z.object({
+  wifi: z.boolean().default(false),
+  furnished: z.boolean().default(false),
+  privateBath: z.boolean().default(false),
+  balcony: z.boolean().default(false),
+  aircon: z.boolean().default(false),
+  heating: z.boolean().default(true),
+  washingMachine: z.boolean().default(false),
+  dishwasher: z.boolean().default(false),
+  parking: z.boolean().default(false),
+  garden: z.boolean().default(false),
+  terrace: z.boolean().default(false),
+});
+
+export const listingRulesSchema = z.object({
+  petsAllowed: z.boolean().default(false),
+  smokingAllowed: z.boolean().default(false),
+  couplesAllowed: z.boolean().default(false),
+  guestsAllowed: z.boolean().default(true),
+  cleaningSchedule: z.string().optional(),
+  quietHoursStart: z.string().optional(),
+  quietHoursEnd: z.string().optional(),
+});
+
+export const listingPreferencesSchema = z.object({
+  gender: z.enum(['MALE', 'FEMALE', 'OTHER']).nullable().optional(),
+  ageMin: z.number().min(18).optional(),
+  ageMax: z.number().max(99).optional(),
+  occupation: z.array(z.enum(['STUDENT', 'WORKING', 'FREELANCER', 'UNEMPLOYED', 'RETIRED'])).optional(),
+  languages: z.array(z.string()).optional(),
+});
+
+// ==================== Search Schemas ====================
+
+export const searchListingsSchema = z.object({
+  city: z.string().optional(),
+  neighborhood: z.string().optional(),
+  priceMin: z.number().optional(),
+  priceMax: z.number().optional(),
+  roomType: z.enum(['SINGLE', 'DOUBLE', 'STUDIO', 'ENTIRE_PLACE']).optional(),
+  availableFrom: z.string().optional(),
+  features: z.object({
+    wifi: z.boolean().optional(),
+    furnished: z.boolean().optional(),
+    privateBath: z.boolean().optional(),
+    petsAllowed: z.boolean().optional(),
+    smokingAllowed: z.boolean().optional(),
+  }).optional(),
+  preferences: z.object({
+    gender: z.enum(['MALE', 'FEMALE', 'OTHER']).optional(),
+  }).optional(),
+  bounds: z.object({
+    north: z.number(),
+    south: z.number(),
+    east: z.number(),
+    west: z.number(),
+  }).optional(),
+  page: z.number().default(1),
+  limit: z.number().default(20),
+  sortBy: z.enum(['price_asc', 'price_desc', 'date_asc', 'date_desc']).default('date_desc'),
+});
+
+// ==================== Booking Schemas ====================
+
+export const createBookingSchema = z.object({
+  slotId: z.string(),
+  message: z.string().max(500).optional(),
+});
+
+export const createVisitSlotSchema = z.object({
+  listingId: z.string(),
+  date: z.string(),
+  startTime: z.string(),
+  endTime: z.string(),
+  type: z.enum(['SINGLE', 'OPENDAY', 'VIRTUAL']),
+  maxGuests: z.number().default(1),
+});
+
+// ==================== Message Schemas ====================
+
+export const sendMessageSchema = z.object({
+  conversationId: z.string().optional(),
+  recipientId: z.string().optional(),
+  listingId: z.string().optional(),
+  content: z.string().min(1).max(2000),
+});
+
+// Type exports
+export type RegisterInput = z.infer<typeof registerSchema>;
+export type LoginInput = z.infer<typeof loginSchema>;
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+export type CreateListingInput = z.infer<typeof createListingSchema>;
+export type SearchListingsInput = z.infer<typeof searchListingsSchema>;
+export type CreateBookingInput = z.infer<typeof createBookingSchema>;
+export type SendMessageInput = z.infer<typeof sendMessageSchema>;

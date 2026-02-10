@@ -1,0 +1,377 @@
+// Prisma schema for rooMate
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== USERS ====================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String?
+  name          String
+  phone         String?
+  avatar        String?
+  bio           String?
+  dateOfBirth   DateTime?
+  gender        Gender?
+  occupation    Occupation?
+  verified      Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  landlordProfile  LandlordProfile?
+  tenantProfile    TenantProfile?
+  listings         Listing[]
+  bookings         Booking[]
+  messages         Message[]
+  reviews          Review[]
+  favorites        Favorite[]
+
+  @@map("users")
+}
+
+model LandlordProfile {
+  id             String  @id @default(cuid())
+  userId         String  @unique
+  user           User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  responseRate   Float   @default(0)
+  responseTime   Int     @default(0) // in minutes
+  totalListings  Int     @default(0)
+  
+  // Verification
+  idVerified     Boolean @default(false)
+  phoneVerified  Boolean @default(false)
+  
+  @@map("landlord_profiles")
+}
+
+model TenantProfile {
+  id             String  @id @default(cuid())
+  userId         String  @unique
+  user           User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Preferences
+  budgetMin      Int?
+  budgetMax      Int?
+  preferredAreas String[]
+  moveInDate     DateTime?
+  
+  // Verification
+  employmentVerified Boolean @default(false)
+  incomeVerified     Boolean @default(false)
+  
+  @@map("tenant_profiles")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum Occupation {
+  STUDENT
+  WORKING
+  FREELANCER
+  UNEMPLOYED
+  RETIRED
+}
+
+// ==================== LISTINGS ====================
+
+model Listing {
+  id            String      @id @default(cuid())
+  landlordId    String
+  landlord      User        @relation(fields: [landlordId], references: [id], onDelete: Cascade)
+  
+  // Basic info
+  title         String
+  description   String
+  status        ListingStatus @default(DRAFT)
+  
+  // Location
+  address       String
+  city          String
+  neighborhood  String?
+  postalCode    String?
+  latitude      Float
+  longitude     Float
+  
+  // Room details
+  roomType      RoomType
+  roomSize      Int         // in m²
+  totalSize     Int?        // apartment total size
+  floor         Int?
+  hasElevator   Boolean     @default(false)
+  
+  // Pricing
+  price         Int         // monthly rent
+  expenses      Int         @default(0)
+  deposit       Int
+  
+  // Availability
+  availableFrom DateTime
+  minStay       Int         @default(6) // months
+  maxStay       Int?
+  
+  // Features
+  features      ListingFeatures?
+  
+  // Rules & preferences
+  rules         ListingRules?
+  preferences   ListingPreferences?
+  
+  // Media
+  images        ListingImage[]
+  virtualTourUrl String?
+  
+  // Current roommates
+  roommates     Roommate[]
+  
+  // Bookings & visits
+  availableSlots VisitSlot[]
+  bookings       Booking[]
+  
+  // Engagement
+  views         Int         @default(0)
+  favorites     Favorite[]
+  reviews       Review[]
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  publishedAt   DateTime?
+
+  @@index([city])
+  @@index([price])
+  @@index([status])
+  @@map("listings")
+}
+
+model ListingImage {
+  id         String  @id @default(cuid())
+  listingId  String
+  listing    Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  url        String
+  order      Int     @default(0)
+  caption    String?
+  
+  @@map("listing_images")
+}
+
+model ListingFeatures {
+  id             String  @id @default(cuid())
+  listingId      String  @unique
+  listing        Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  
+  wifi           Boolean @default(false)
+  furnished      Boolean @default(false)
+  privateBath    Boolean @default(false)
+  balcony        Boolean @default(false)
+  aircon         Boolean @default(false)
+  heating        Boolean @default(true)
+  washingMachine Boolean @default(false)
+  dishwasher     Boolean @default(false)
+  parking        Boolean @default(false)
+  garden         Boolean @default(false)
+  terrace        Boolean @default(false)
+  
+  @@map("listing_features")
+}
+
+model ListingRules {
+  id               String  @id @default(cuid())
+  listingId        String  @unique
+  listing          Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  
+  petsAllowed      Boolean @default(false)
+  smokingAllowed   Boolean @default(false)
+  couplesAllowed   Boolean @default(false)
+  guestsAllowed    Boolean @default(true)
+  cleaningSchedule String?
+  quietHoursStart  String? // "22:00"
+  quietHoursEnd    String? // "08:00"
+  
+  @@map("listing_rules")
+}
+
+model ListingPreferences {
+  id           String       @id @default(cuid())
+  listingId    String       @unique
+  listing      Listing      @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  
+  gender       Gender?      // null = any
+  ageMin       Int?
+  ageMax       Int?
+  occupation   Occupation[]
+  languages    String[]
+  
+  @@map("listing_preferences")
+}
+
+model Roommate {
+  id          String  @id @default(cuid())
+  listingId   String
+  listing     Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  
+  name        String
+  age         Int?
+  occupation  String?
+  bio         String?
+  avatar      String?
+  
+  @@map("roommates")
+}
+
+enum ListingStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  RENTED
+  ARCHIVED
+}
+
+enum RoomType {
+  SINGLE
+  DOUBLE
+  STUDIO
+  ENTIRE_PLACE
+}
+
+// ==================== VISITS & BOOKINGS ====================
+
+model VisitSlot {
+  id          String    @id @default(cuid())
+  listingId   String
+  listing     Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  
+  date        DateTime
+  startTime   String    // "10:00"
+  endTime     String    // "10:30"
+  type        VisitType
+  maxGuests   Int       @default(1) // for open days
+  
+  bookings    Booking[]
+  
+  createdAt   DateTime  @default(now())
+  
+  @@index([listingId, date])
+  @@map("visit_slots")
+}
+
+model Booking {
+  id          String        @id @default(cuid())
+  slotId      String
+  slot        VisitSlot     @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  listingId   String
+  listing     Listing       @relation(fields: [listingId], references: [id])
+  tenantId    String
+  tenant      User          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  status      BookingStatus @default(PENDING)
+  message     String?       // message to landlord
+  
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  confirmedAt DateTime?
+  cancelledAt DateTime?
+  
+  @@unique([slotId, tenantId])
+  @@map("bookings")
+}
+
+enum VisitType {
+  SINGLE     // one-on-one visit
+  OPENDAY    // multiple visitors allowed
+  VIRTUAL    // video call
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+// ==================== MESSAGING ====================
+
+model Conversation {
+  id          String    @id @default(cuid())
+  listingId   String?
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  participants ConversationParticipant[]
+  messages     Message[]
+  
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  
+  lastReadAt     DateTime?
+  
+  @@unique([conversationId, userId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  
+  content        String
+  
+  createdAt      DateTime     @default(now())
+  readAt         DateTime?
+  
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}
+
+// ==================== REVIEWS & FAVORITES ====================
+
+model Review {
+  id          String   @id @default(cuid())
+  listingId   String
+  listing     Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  
+  rating      Int      // 1-5
+  comment     String?
+  
+  createdAt   DateTime @default(now())
+  
+  @@unique([listingId, authorId])
+  @@map("reviews")
+}
+
+model Favorite {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId  String
+  listing    Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  
+  createdAt  DateTime @default(now())
+  
+  @@unique([userId, listingId])
+  @@map("favorites")
+}
