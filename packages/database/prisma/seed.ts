@@ -1,9 +1,13 @@
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('Seeding database...');
+
+  // Hash a shared password for all seed users (password: "password123")
+  const passwordHash = await bcrypt.hash('password123', 10);
 
   // Clean existing data
   await prisma.message.deleteMany();
@@ -28,7 +32,7 @@ async function main() {
   const landlord1 = await prisma.user.create({
     data: {
       email: 'anna.rossi@example.com',
-      passwordHash: '$2a$10$placeholder_hash_anna', // "password123"
+      passwordHash, // "password123"
       name: 'Anna Rossi',
       phone: '+39 333 1234567',
       bio: 'Proprietaria di appartamenti a Milano da 10 anni.',
@@ -51,7 +55,7 @@ async function main() {
   const landlord2 = await prisma.user.create({
     data: {
       email: 'marco.bianchi@example.com',
-      passwordHash: '$2a$10$placeholder_hash_marco',
+      passwordHash,
       name: 'Marco Bianchi',
       phone: '+39 340 9876543',
       bio: 'Affitto stanze nel mio appartamento in zona Navigli.',
@@ -74,7 +78,7 @@ async function main() {
   const landlord3 = await prisma.user.create({
     data: {
       email: 'lucia.ferrari@example.com',
-      passwordHash: '$2a$10$placeholder_hash_lucia',
+      passwordHash,
       name: 'Lucia Ferrari',
       phone: '+39 328 5551234',
       bio: 'Gestisco alcuni immobili nella zona di Città Studi.',
@@ -99,7 +103,7 @@ async function main() {
   const tenant1 = await prisma.user.create({
     data: {
       email: 'giulia.bianchi@example.com',
-      passwordHash: '$2a$10$placeholder_hash_giulia',
+      passwordHash,
       name: 'Giulia Bianchi',
       dateOfBirth: new Date('1999-05-12'),
       gender: 'FEMALE',
@@ -128,7 +132,7 @@ async function main() {
   const tenant2 = await prisma.user.create({
     data: {
       email: 'thomas.muller@example.com',
-      passwordHash: '$2a$10$placeholder_hash_thomas',
+      passwordHash,
       name: 'Thomas Müller',
       dateOfBirth: new Date('2002-09-28'),
       gender: 'MALE',
@@ -156,7 +160,7 @@ async function main() {
   const tenant3 = await prisma.user.create({
     data: {
       email: 'marco.r@example.com',
-      passwordHash: '$2a$10$placeholder_hash_marcor',
+      passwordHash,
       name: 'Marco Rossi',
       dateOfBirth: new Date('1994-01-20'),
       gender: 'MALE',
@@ -184,7 +188,7 @@ async function main() {
   const tenant4 = await prisma.user.create({
     data: {
       email: 'sofia.colombo@example.com',
-      passwordHash: '$2a$10$placeholder_hash_sofia',
+      passwordHash,
       name: 'Sofia Colombo',
       dateOfBirth: new Date('2000-04-08'),
       gender: 'FEMALE',
@@ -213,7 +217,7 @@ async function main() {
   const tenant5 = await prisma.user.create({
     data: {
       email: 'alessandro.g@example.com',
-      passwordHash: '$2a$10$placeholder_hash_ale',
+      passwordHash,
       name: 'Alessandro Greco',
       dateOfBirth: new Date('1996-12-03'),
       gender: 'MALE',

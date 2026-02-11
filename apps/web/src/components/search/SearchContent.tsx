@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { SearchResults } from './SearchResults';
 import { SearchMap } from './SearchMap';
-import type { ListingCard, ApiResponse } from '@roommate/shared';
+import type { ListingCard, ApiResponse, PaginatedResponse } from '@roommate/shared';
 
 export function SearchContent() {
   const [listings, setListings] = useState<ListingCard[]>([]);
@@ -13,9 +13,9 @@ export function SearchContent() {
     async function fetchListings() {
       try {
         const res = await fetch('/api/listings?city=Milano');
-        const json: ApiResponse<ListingCard[]> = await res.json();
+        const json: ApiResponse<PaginatedResponse<ListingCard>> = await res.json();
         if (json.success && json.data) {
-          setListings(json.data);
+          setListings(json.data.items);
         }
       } catch (error) {
         console.error('Error fetching listings:', error);

@@ -42,16 +42,31 @@ model LandlordProfile {
   id             String  @id @default(cuid())
   userId         String  @unique
   user           User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   responseRate   Float   @default(0)
   responseTime   Int     @default(0) // in minutes
   totalListings  Int     @default(0)
-  
+
+  // Contact preferences
+  contactPreference ContactPreference @default(IN_APP)
+  phonePublic       Boolean           @default(false)
+  emailPublic       Boolean           @default(false)
+
+  // Business info
+  companyName    String?
+  description    String?
+
   // Verification
   idVerified     Boolean @default(false)
   phoneVerified  Boolean @default(false)
-  
+
   @@map("landlord_profiles")
+}
+
+enum ContactPreference {
+  IN_APP
+  PHONE
+  EMAIL
 }
 
 model TenantProfile {
@@ -156,6 +171,7 @@ model Listing {
   // Media
   images        ListingImage[]
   virtualTourUrl String?
+  videoUrl       String?
   
   // Current roommates
   roommates     Roommate[]
@@ -168,14 +184,17 @@ model Listing {
   views         Int         @default(0)
   favorites     Favorite[]
   reviews       Review[]
+  nearbyAmenities NearbyAmenity[]
   
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   publishedAt   DateTime?
+  expiresAt     DateTime?
 
   @@index([city])
   @@index([price])
   @@index([status])
+  @@index([expiresAt])
   @@map("listings")
 }
 
@@ -260,6 +279,7 @@ enum ListingStatus {
   PAUSED
   RENTED
   ARCHIVED
+  EXPIRED
 }
 
 enum RoomType {
@@ -392,9 +412,35 @@ model Favorite {
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   listingId  String
   listing    Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  
+
   createdAt  DateTime @default(now())
-  
+
   @@unique([userId, listingId])
   @@map("favorites")
+}
+
+// ==================== NEARBY AMENITIES ====================
+
+model NearbyAmenity {
+  id         String      @id @default(cuid())
+  listingId  String
+  listing    Listing     @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  type       AmenityType
+  name       String
+  latitude   Float
+  longitude  Float
+  distanceM  Int         // distance in meters from listing
+
+  @@index([listingId, type])
+  @@map("nearby_amenities")
+}
+
+enum AmenityType {
+  SUPERMARKET
+  GROCERY
+  METRO_STATION
+  TRAIN_STATION
+  BUS_STOP
+  TRAM_STOP
 }
