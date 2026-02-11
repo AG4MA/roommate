@@ -1,62 +1,44 @@
-import { View, Text, FlatList, StyleSheet, Pressable, TextInput } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Pressable, TextInput, ActivityIndicator } from 'react-native';
 import { Link } from 'expo-router';
-import { useState } from 'react';
-import { Search, MapPin, SlidersHorizontal, Euro, Users, Wifi } from 'lucide-react-native';
-
-// Mock data
-const mockRooms = [
-  {
-    id: '1',
-    title: 'Stanza singola luminosa - Porta Venezia',
-    address: 'Via Lecco, Milano',
-    price: 550,
-    roomType: 'single',
-    size: 14,
-    features: ['wifi', 'furnished'],
-    roommates: 2,
-  },
-  {
-    id: '2',
-    title: 'Ampia stanza doppia con bagno privato',
-    address: 'Via Padova 120, Milano',
-    price: 450,
-    roomType: 'double',
-    size: 18,
-    features: ['wifi', 'privateBath', 'furnished'],
-    roommates: 1,
-  },
-  {
-    id: '3',
-    title: 'Monolocale accogliente zona Navigli',
-    address: 'Ripa di Porta Ticinese, Milano',
-    price: 750,
-    roomType: 'studio',
-    size: 28,
-    features: ['wifi', 'furnished', 'balcony'],
-    roommates: 0,
-  },
-  {
-    id: '4',
-    title: 'Stanza singola appartamento ristrutturato',
-    address: 'Corso Buenos Aires, Milano',
-    price: 600,
-    roomType: 'single',
-    size: 12,
-    features: ['wifi', 'aircon'],
-    roommates: 3,
-  },
-];
+import { useState, useMemo, useCallback } from 'react';
+import { Search, MapPin, SlidersHorizontal, Euro, Users, Wifi, RefreshCw } from 'lucide-react-native';
+import { useListings } from '../../hooks/useApi';
+import type { Listing } from '../../lib/api';
 
 export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState<{ city?: string; roomType?: string; minPrice?: number; maxPrice?: number }>({});
 
-  const renderRoomCard = ({ item }: { item: typeof mockRooms[0] }) => (
+  // Build query params from search and filters
+  const queryParams = useMemo(() => ({
+    ...(searchQuery ? { city: searchQuery } : {}),
+    ...filters,
+    limit: 20,
+  }), [searchQuery, filters]);
+
+  const { data, isLoading, isError, refetch, isFetching } = useListings(queryParams);
+
+  const listings = data?.data?.listings ?? [];
+  const total = data?.data?.total ?? 0;
+
+  const handleSearch = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
+  const renderRoomCard = ({ item }: { item: Listing }) => (
     <Link href={`/room/${item.id}`} asChild>
       <Pressable style={styles.card}>
-        {/* Image placeholder */}
+        {/* Image */}
         <View style={styles.cardImage}>
-          <MapPin size={32} color="#9ca3af" />
+          {item.images?.[0] ? (
+            <View style={styles.imagePlaceholder}>
+              <MapPin size={32} color="#9ca3af" />
+              <Text style={styles.imagePlaceholderText}>Immagine</Text>
+            </View>
+          ) : (
+            <MapPin size={32} color="#9ca3af" />
+          )}
         </View>
 
         <View style={styles.cardContent}>
@@ -70,19 +52,21 @@ export default function SearchScreen() {
 
           <View style={styles.cardAddress}>
             <MapPin size={14} color="#6b7280" />
-            <Text style={styles.addressText}>{item.address}</Text>
+            <Text style={styles.addressText}>{item.address}, {item.city}</Text>
           </View>
 
           <View style={styles.cardTags}>
             <View style={styles.tag}>
               <Text style={styles.tagText}>
-                {item.roomType === 'single' ? 'Singola' : item.roomType === 'double' ? 'Doppia' : 'Monolocale'}
+                {item.roomType === 'SINGLE' ? 'Singola' : item.roomType === 'DOUBLE' ? 'Doppia' : 'Monolocale'}
               </Text>
             </View>
-            <View style={styles.tag}>
-              <Text style={styles.tagText}>{item.size}m²</Text>
-            </View>
-            {item.features.includes('wifi') && (
+            {item.size && (
+              <View style={styles.tag}>
+                <Text style={styles.tagText}>{item.size}m²</Text>
+              </View>
+            )}
+            {item.features?.includes('wifi') && (
               <View style={[styles.tag, styles.tagHighlight]}>
                 <Wifi size={12} color="#0ea5e9" />
                 <Text style={[styles.tagText, styles.tagTextHighlight]}>WiFi</Text>
@@ -91,15 +75,49 @@ export default function SearchScreen() {
           </View>
 
           <View style={styles.cardFooter}>
-            <View style={styles.roommatesInfo}>
-              <Users size={14} color="#6b7280" />
-              <Text style={styles.roommatesText}>{item.roommates} coinquilini</Text>
-            </View>
+            {item.interestCount !== undefined && (
+              <View style={styles.roommatesInfo}>
+                <Users size={14} color="#6b7280" />
+                <Text style={styles.roommatesText}>{item.interestCount} interessati</Text>
+              </View>
+            )}
           </View>
         </View>
       </Pressable>
     </Link>
   );
+
+  const renderEmptyComponent = () => {
+    if (isLoading) {
+      return (
+        <View style={styles.emptyContainer}>
+          <ActivityIndicator size="large" color="#0ea5e9" />
+          <Text style={styles.emptyText}>Caricamento...</Text>
+        </View>
+      );
+    }
+    
+    if (isError) {
+      return (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyTitle}>Errore di caricamento</Text>
+          <Text style={styles.emptyText}>Impossibile caricare le stanze. Riprova.</Text>
+          <Pressable style={styles.retryButton} onPress={() => refetch()}>
+            <RefreshCw size={16} color="#ffffff" />
+            <Text style={styles.retryButtonText}>Riprova</Text>
+          </Pressable>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.emptyContainer}>
+        <MapPin size={48} color="#d1d5db" />
+        <Text style={styles.emptyTitle}>Nessuna stanza trovata</Text>
+        <Text style={styles.emptyText}>Prova a modificare i filtri di ricerca</Text>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -143,15 +161,20 @@ export default function SearchScreen() {
 
       {/* Results */}
       <FlatList
-        data={mockRooms}
+        data={listings}
         renderItem={renderRoomCard}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
+        refreshing={isFetching && !isLoading}
+        onRefresh={refetch}
+        ListEmptyComponent={renderEmptyComponent}
         ListHeaderComponent={
-          <Text style={styles.resultsCount}>
-            {mockRooms.length} stanze trovate
-          </Text>
+          listings.length > 0 ? (
+            <Text style={styles.resultsCount}>
+              {total} stanz{total === 1 ? 'a' : 'e'} trovat{total === 1 ? 'a' : 'e'}
+            </Text>
+          ) : null
         }
       />
     </View>
@@ -162,6 +185,49 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f9fafb',
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+    marginTop: 48,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0ea5e9',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 16,
+    gap: 8,
+  },
+  retryButtonText: {
+    color: '#ffffff',
+    fontWeight: '600',
+  },
+  imagePlaceholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  imagePlaceholderText: {
+    fontSize: 12,
+    color: '#9ca3af',
+    marginTop: 4,
   },
   searchHeader: {
     flexDirection: 'row',

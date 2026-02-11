@@ -1,6 +1,143 @@
 [20260211]
 
-This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+## Progress Update (SAL - Stato Avanzamento Lavori)
+
+### Phase 0 - Foundation ✅ COMPLETED
+
+#### 0A - English Code Comments ✅
+All comments across ~15 files converted to English
+
+#### 0B - Seed Script ✅
+Comprehensive seed at `packages/database/prisma/seed.ts` with:
+- 3 landlords, 5 tenants, 6 listings in Milan
+- Visit slots, bookings, conversations, favorites, reviews
+
+#### 0C - Wire API routes to Prisma ✅
+
+| API Route | Methods | Status |
+|-----------|---------|--------|
+| `/api/listings` | GET | ✅ Dynamic filters, ACTIVE only |
+| `/api/listings/[id]` | GET | ✅ Full detail, view counter |
+| `/api/listings/[id]/slots` | GET | ✅ Availability calculation |
+| `/api/listings/[id]/interest` | GET/POST/DELETE | ✅ NEW - Interest system |
+| `/api/bookings` | GET/POST | ✅ Slot validation, tenant cards |
+| `/api/profile/tenant` | GET/PUT | ✅ Full Prisma + Zod |
+| `/api/profile/landlord` | GET/PUT | ✅ Session-based |
+| `/api/wishes` | GET/POST | ✅ NEW - Saved searches |
+| `/api/wishes/[id]` | GET/PUT/DELETE | ✅ NEW - Manage wishes |
+| `/api/auth/register` | POST | ✅ Password hashing |
+| `/api/upload` | POST | ✅ File upload |
+
+---
+
+### Phase 1 - Authentication ✅ COMPLETED
+
+- **NextAuth.js** configured with Credentials provider
+- **Login page** (`/login`) with email/password
+- **Register page** (`/registrati`) with role selection (tenant/landlord)
+- **AuthProvider** wrapping app in layout.tsx
+- **Navbar** with session-aware UI, profile dropdown, logout
+
+---
+
+### Phase 2 - Landlord Listing Wizard ✅ COMPLETED
+
+Multi-step listing creation at `/pubblica`:
+- Step 1: Basic info (title, price, room type)
+- Step 2: Location (address, coordinates)
+- Step 3: Features & rules
+- Step 4: Tenant preferences
+- Step 5: Media upload (images + video URL)
+- Step 6: Review & publish
+
+All step components exist: `StepBasicInfo`, `StepLocation`, `StepFeatures`, `StepPreferences`, `StepMedia`, `StepReview`
+
+---
+
+### Phase 3 - Nearby Amenities ⚠️ PARTIAL
+
+- **Overpass utility** exists at `apps/web/src/lib/overpass.ts`
+- **`fetchNearbyAmenities()`** function ready to use
+- **TODO**: Integrate into listing creation flow to auto-detect amenities
+
+---
+
+### Phase 4 - Interest System ✅ COMPLETED
+
+- **Prisma schema** updated with `Interest` model
+- **Engagement scoring** implemented (profile +2, messages +3, visits +5)
+- **Max 6 active** interests per listing, waiting list for 7+
+- **API routes** at `/api/listings/[id]/interest` (GET/POST/DELETE)
+- **Auto-promotion** from waiting list when someone withdraws
+
+---
+
+### Phase 5 - Wish System ✅ COMPLETED
+
+- **Prisma schema** updated with `Wish` model
+- **API routes** at `/api/wishes` (GET/POST) and `/api/wishes/[id]` (GET/PUT/DELETE)
+- **Filters**: city, neighborhoods, price range, room types, features
+- **Notifications**: email & push preferences
+- **Limit**: 5 active wishes per user
+
+---
+
+## Remaining Tasks (Phases 6-9)
+
+### Phase 6: Listing Expiry System ✅ COMPLETED
+
+- **Cron endpoint** at `/api/cron/expire-listings` (POST with CRON_SECRET header)
+  - Expires listings past 30 days (sets status to EXPIRED)
+  - Sends warning at day 25 (console log, ready for email/push)
+  - Updates associated interests to EXPIRED status
+- **Renewal endpoint** at `/api/listings/[id]/renew` (POST)
+  - One-click renewal for 30 more days
+  - Reactivates expired interests to WAITING status
+  - Only owner can renew
+
+### Phase 7: Chat System ✅ COMPLETED
+
+- **Conversations API** at `/api/conversations`
+  - GET: List user's conversations with last message and unread count
+  - POST: Create or retrieve existing conversation
+- **Conversation Detail** at `/api/conversations/[id]`
+  - GET: Full conversation with all messages, marks as read
+- **Messages API** at `/api/conversations/[id]/messages`
+  - POST: Send message, updates engagement score
+
+### Phase 8: Mobile App Parity ✅ COMPLETED
+
+- **API Client** (`apps/mobile/lib/api.ts`)
+  - Full API client with auth token management
+  - All endpoints: auth, listings, interests, bookings, conversations, wishes, profiles
+  - Secure token storage with expo-secure-store
+- **Auth Store** (`apps/mobile/store/auth.ts`)
+  - Zustand store for user session state
+  - Login, register, logout, persistence
+- **React Query Hooks** (`apps/mobile/hooks/useApi.ts`)
+  - Query hooks for all API endpoints
+  - Mutation hooks with cache invalidation
+- **Updated Screens**:
+  - Search: Real API calls, loading states, pull-to-refresh
+  - Messages: Real conversations list, empty states
+  - Profile: Real auth state, role display, logout
+  - Room Detail: Real listing data, express interest, contact landlord
+  - Auth screens: Login and Register with validation
+  - Conversation: Real-time chat with send message
+
+### Phase 9: README Update ✅ COMPLETED
+
+- Complete feature documentation
+- Environment variables section
+- All API routes documented
+- Database schema overview
+- Listing lifecycle explanation
+- Interest system documentation
+- Mobile app features
+
+---
+
+## Previous Context Summary
 
 Analysis:
 Let me chronologically analyze the entire conversation:

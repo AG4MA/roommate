@@ -1,18 +1,32 @@
+import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useAuthStore } from '../store/auth';
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
+      retry: 2,
     },
   },
 });
 
+function AuthInitializer({ children }: { children: React.ReactNode }) {
+  const initialize = useAuthStore((state) => state.initialize);
+  
+  useEffect(() => {
+    initialize();
+  }, [initialize]);
+  
+  return <>{children}</>;
+}
+
 export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
+      <AuthInitializer>
       <StatusBar style="dark" />
       <Stack
         screenOptions={{
@@ -54,7 +68,15 @@ export default function RootLayout() {
             presentation: 'modal',
           }} 
         />
+        <Stack.Screen 
+          name="conversation/[id]" 
+          options={{ 
+            title: 'Conversazione',
+            presentation: 'card',
+          }} 
+        />
       </Stack>
+      </AuthInitializer>
     </QueryClientProvider>
   );
 }

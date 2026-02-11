@@ -34,6 +34,8 @@ model User {
   messages         Message[]
   reviews          Review[]
   favorites        Favorite[]
+  interests        Interest[]
+  wishes           Wish[]
 
   @@map("users")
 }
@@ -185,6 +187,7 @@ model Listing {
   favorites     Favorite[]
   reviews       Review[]
   nearbyAmenities NearbyAmenity[]
+  interests     Interest[]
   
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
@@ -444,3 +447,66 @@ enum AmenityType {
   BUS_STOP
   TRAM_STOP
 }
+
+// ==================== INTEREST SYSTEM ====================
+
+model Interest {
+  id          String         @id @default(cuid())
+  listingId   String
+  listing     Listing        @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  tenantId    String
+  tenant      User           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  status      InterestStatus @default(ACTIVE)
+  position    Int            @default(0) // 1-6 = active, 7+ = waiting list
+  score       Int            @default(0) // engagement score
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@unique([listingId, tenantId])
+  @@index([listingId, status, position])
+  @@map("interests")
+}
+
+enum InterestStatus {
+  ACTIVE      // Currently in top 6
+  WAITING     // On waiting list
+  WITHDRAWN   // User withdrew interest
+  EXPIRED     // Listing expired
+}
+
+// ==================== WISH SYSTEM (Saved Searches) ====================
+
+model Wish {
+  id             String     @id @default(cuid())
+  userId         String
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name           String?    // Optional label for the search
+  
+  // Search filters
+  city           String?
+  neighborhoods  String[]
+  priceMin       Int?
+  priceMax       Int?
+  roomTypes      RoomType[]
+  
+  // Preferences
+  minSize        Int?
+  features       String[]   // wifi, furnished, etc.
+  
+  // Notification settings
+  emailNotify    Boolean    @default(true)
+  pushNotify     Boolean    @default(true)
+  
+  active         Boolean    @default(true)
+  lastMatchedAt  DateTime?
+  
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@index([userId, active])
+  @@map("wishes")
+}
+

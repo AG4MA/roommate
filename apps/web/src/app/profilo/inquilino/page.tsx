@@ -1,7 +1,19 @@
 'use client';
 
-import { useState } from 'react';
-import { Save, Euro, Calendar, FileText, Building2, Shield, Cigarette, PawPrint, Languages, CheckCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import {
+  Save,
+  Euro,
+  Calendar,
+  FileText,
+  Building2,
+  Shield,
+  Cigarette,
+  PawPrint,
+  Languages,
+  CheckCircle,
+  Loader2,
+} from 'lucide-react';
 
 const contractTypeOptions = [
   { value: '', label: 'Seleziona...' },
@@ -20,8 +32,16 @@ const incomeRangeOptions = [
 ];
 
 const commonLanguages = [
-  'Italiano', 'Inglese', 'Francese', 'Spagnolo', 'Tedesco',
-  'Portoghese', 'Cinese', 'Arabo', 'Russo', 'Giapponese',
+  'Italiano',
+  'Inglese',
+  'Francese',
+  'Spagnolo',
+  'Tedesco',
+  'Portoghese',
+  'Cinese',
+  'Arabo',
+  'Russo',
+  'Giapponese',
 ];
 
 interface FormData {
@@ -39,6 +59,8 @@ interface FormData {
 
 export default function ProfiloInquilinoPage() {
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<FormData>({
     budgetMin: '',
     budgetMax: '',
@@ -51,6 +73,38 @@ export default function ProfiloInquilinoPage() {
     referencesAvailable: false,
     languages: [],
   });
+
+  // Load existing profile on mount
+  useEffect(() => {
+    async function loadProfile() {
+      try {
+        // TODO: Replace with session user ID (Phase 1)
+        const res = await fetch('/api/profile/tenant?userId=demo');
+        const json = await res.json();
+
+        if (json.success && json.data) {
+          const d = json.data;
+          setForm({
+            budgetMin: d.budgetMin?.toString() ?? '',
+            budgetMax: d.budgetMax?.toString() ?? '',
+            moveInDate: d.moveInDate ? d.moveInDate.split('T')[0] : '',
+            contractType: d.contractType ?? '',
+            incomeRange: d.incomeRange ?? '',
+            smoker: d.smoker ?? false,
+            hasPets: d.hasPets ?? false,
+            hasGuarantor: d.hasGuarantor ?? false,
+            referencesAvailable: d.referencesAvailable ?? false,
+            languages: d.languages ?? [],
+          });
+        }
+      } catch (err) {
+        // Profile not found or not logged in - use defaults
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadProfile();
+  }, []);
 
   function handleToggle(field: keyof FormData) {
     setForm((prev) => ({ ...prev, [field]: !prev[field] }));
@@ -74,8 +128,11 @@ export default function ProfiloInquilinoPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setSaving(true);
 
     const payload = {
+      // TODO: Replace with session user ID (Phase 1)
+      userId: 'demo',
       budgetMin: form.budgetMin ? Number(form.budgetMin) : undefined,
       budgetMax: form.budgetMax ? Number(form.budgetMax) : undefined,
       moveInDate: form.moveInDate || undefined,
@@ -88,10 +145,32 @@ export default function ProfiloInquilinoPage() {
       languages: form.languages.length > 0 ? form.languages : undefined,
     };
 
-    // In production: fetch('/api/profile/tenant', { method: 'PUT', body: JSON.stringify(payload) })
-    console.log('Saving tenant profile:', payload);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    try {
+      const res = await fetch('/api/profile/tenant', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      }
+    } catch (err) {
+      console.error('Error saving profile:', err);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-8">
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -235,10 +314,15 @@ export default function ProfiloInquilinoPage() {
         <div className="flex items-center gap-4">
           <button
             type="submit"
-            className="px-8 py-3 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold flex items-center gap-2 transition-colors"
+            disabled={saving}
+            className="px-8 py-3 rounded-xl bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 text-white font-semibold flex items-center gap-2 transition-colors"
           >
-            <Save className="w-5 h-5" />
-            Salva profilo
+            {saving ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Save className="w-5 h-5" />
+            )}
+            {saving ? 'Salvataggio...' : 'Salva profilo'}
           </button>
           {saved && (
             <span className="text-green-600 flex items-center gap-1 text-sm font-medium">

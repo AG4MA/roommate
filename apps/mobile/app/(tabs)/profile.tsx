@@ -1,15 +1,42 @@
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
-import { Link } from 'expo-router';
+import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { Link, useRouter } from 'expo-router';
 import { 
   User, Settings, Bell, Shield, HelpCircle, 
-  LogOut, ChevronRight, Home 
+  LogOut, ChevronRight, Home, Heart, Calendar
 } from 'lucide-react-native';
+import { useAuthStore } from '../../store/auth';
 
 export default function ProfileScreen() {
-  // In production, check if user is logged in
-  const isLoggedIn = false;
+  const router = useRouter();
+  const { user, isAuthenticated, isLoading, logout } = useAuthStore();
 
-  if (!isLoggedIn) {
+  const handleLogout = () => {
+    Alert.alert(
+      'Esci',
+      'Sei sicuro di voler uscire?',
+      [
+        { text: 'Annulla', style: 'cancel' },
+        { 
+          text: 'Esci', 
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+            router.replace('/');
+          }
+        },
+      ]
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color="#0ea5e9" />
+      </View>
+    );
+  }
+
+  if (!isAuthenticated || !user) {
     return (
       <View style={styles.container}>
         <View style={styles.loginPrompt}>
@@ -45,23 +72,46 @@ export default function ProfileScreen() {
     <ScrollView style={styles.container}>
       {/* Profile Header */}
       <View style={styles.profileHeader}>
-        <View style={styles.avatarPlaceholder}>
-          <User size={32} color="#0ea5e9" />
+        <View style={styles.avatarContainer}>
+          {user.avatarUrl ? (
+            <View style={styles.avatarPlaceholder}>
+              <Text style={styles.avatarText}>
+                {user.name.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.avatarPlaceholder}>
+              <Text style={styles.avatarText}>
+                {user.name.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
         </View>
         <View style={styles.profileInfo}>
-          <Text style={styles.profileName}>Mario Rossi</Text>
-          <Text style={styles.profileEmail}>mario.rossi@email.com</Text>
+          <Text style={styles.profileName}>{user.name}</Text>
+          <Text style={styles.profileEmail}>{user.email}</Text>
+          <View style={styles.roleTag}>
+            <Text style={styles.roleText}>
+              {user.role === 'LANDLORD' ? 'Proprietario' : 'Inquilino'}
+            </Text>
+          </View>
         </View>
         <Pressable>
           <Settings size={24} color="#6b7280" />
         </Pressable>
       </View>
 
-      {/* Menu Sections */}
+      {/* User Actions */}
       <View style={styles.menuSection}>
         <Text style={styles.menuSectionTitle}>Il mio account</Text>
         <MenuItem icon={User} label="Modifica profilo" />
-        <MenuItem icon={Home} label="I miei annunci" />
+        {user.role === 'LANDLORD' && (
+          <MenuItem icon={Home} label="I miei annunci" onPress={() => router.push('/my-listings')} />
+        )}
+        {user.role === 'TENANT' && (
+          <MenuItem icon={Heart} label="I miei interessi" onPress={() => router.push('/my-interests')} />
+        )}
+        <MenuItem icon={Calendar} label="Le mie prenotazioni" onPress={() => router.push('/my-bookings')} />
         <MenuItem icon={Bell} label="Notifiche" />
       </View>
 
@@ -71,7 +121,7 @@ export default function ProfileScreen() {
         <MenuItem icon={Shield} label="Privacy e sicurezza" />
       </View>
 
-      <Pressable style={styles.logoutButton}>
+      <Pressable style={styles.logoutButton} onPress={handleLogout}>
         <LogOut size={20} color="#ef4444" />
         <Text style={styles.logoutText}>Esci</Text>
       </Pressable>
@@ -79,9 +129,17 @@ export default function ProfileScreen() {
   );
 }
 
-function MenuItem({ icon: Icon, label }: { icon: any; label: string }) {
+function MenuItem({ 
+  icon: Icon, 
+  label, 
+  onPress 
+}: { 
+  icon: any; 
+  label: string; 
+  onPress?: () => void;
+}) {
   return (
-    <Pressable style={styles.menuItem}>
+    <Pressable style={styles.menuItem} onPress={onPress}>
       <Icon size={20} color="#6b7280" />
       <Text style={styles.menuItemLabel}>{label}</Text>
       <ChevronRight size={20} color="#d1d5db" />
@@ -94,6 +152,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f9fafb',
   },
+  centered: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   loginPrompt: {
     alignItems: 'center',
     padding: 32,
@@ -102,11 +164,19 @@ const styles = StyleSheet.create({
   avatarPlaceholder: {
     width: 96,
     height: 96,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#e0f2fe',
     borderRadius: 48,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
+  },
+  avatarText: {
+    fontSize: 36,
+    fontWeight: '600',
+    color: '#0ea5e9',
+  },
+  avatarContainer: {
+    marginBottom: 0,
   },
   loginTitle: {
     fontSize: 20,
@@ -160,6 +230,19 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     marginTop: 2,
   },
+  roleTag: {
+    backgroundColor: '#e0f2fe',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+    marginTop: 6,
+  },
+  roleText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#0ea5e9',
+  },
   menuSection: {
     backgroundColor: '#ffffff',
     marginTop: 16,
@@ -192,6 +275,7 @@ const styles = StyleSheet.create({
     gap: 8,
     padding: 20,
     marginTop: 16,
+    marginBottom: 32,
   },
   logoutText: {
     fontSize: 16,
