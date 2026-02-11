@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
+import type { ListingCard } from '@roommate/shared';
 
-// Dynamic import per evitare SSR issues con Leaflet
+// Dynamic import to avoid SSR issues with Leaflet
 const MapContainer = dynamic(
   () => import('react-leaflet').then((mod) => mod.MapContainer),
   { ssr: false }
@@ -21,15 +22,11 @@ const Popup = dynamic(
   { ssr: false }
 );
 
-// Mock data - stesso dei risultati
-const mockLocations = [
-  { id: '1', lat: 45.4773, lng: 9.2055, price: 550, title: 'Stanza Porta Venezia' },
-  { id: '2', lat: 45.4951, lng: 9.2264, price: 450, title: 'Stanza Via Padova' },
-  { id: '3', lat: 45.4485, lng: 9.1769, price: 750, title: 'Monolocale Navigli' },
-  { id: '4', lat: 45.4815, lng: 9.2127, price: 600, title: 'Stanza Buenos Aires' },
-];
+interface SearchMapProps {
+  listings: ListingCard[];
+}
 
-export function SearchMap() {
+export function SearchMap({ listings }: SearchMapProps) {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -44,10 +41,19 @@ export function SearchMap() {
     );
   }
 
+  // Calculate center from listings or default to Milan
+  const center: [number, number] =
+    listings.length > 0
+      ? [
+          listings.reduce((sum, l) => sum + l.latitude, 0) / listings.length,
+          listings.reduce((sum, l) => sum + l.longitude, 0) / listings.length,
+        ]
+      : [45.4642, 9.19];
+
   return (
     <div className="h-full w-full">
       <MapContainer
-        center={[45.4642, 9.1900]}
+        center={center}
         zoom={13}
         className="h-full w-full"
         scrollWheelZoom={true}
@@ -56,12 +62,12 @@ export function SearchMap() {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        {mockLocations.map((location) => (
-          <Marker key={location.id} position={[location.lat, location.lng]}>
+        {listings.map((listing) => (
+          <Marker key={listing.id} position={[listing.latitude, listing.longitude]}>
             <Popup>
               <div className="p-2">
-                <h3 className="font-semibold">{location.title}</h3>
-                <p className="text-primary-600 font-bold">€{location.price}/mese</p>
+                <h3 className="font-semibold">{listing.title}</h3>
+                <p className="text-primary-600 font-bold">€{listing.price}/mese</p>
               </div>
             </Popup>
           </Marker>

@@ -41,6 +41,36 @@ export interface LandlordInfo extends UserPublic {
   verified: boolean;
 }
 
+// ==================== Tenant Profile Types ====================
+
+export type ContractType = 'PERMANENT' | 'TEMPORARY' | 'INTERNSHIP';
+export type IncomeRange = 'UNDER_1000' | 'FROM_1000_TO_1500' | 'FROM_1500_TO_2000' | 'FROM_2000_TO_3000' | 'OVER_3000';
+
+export interface TenantProfileCard {
+  // From User model
+  id: string;
+  name: string;
+  avatar: string | null;
+  age: number | null;
+  gender: 'MALE' | 'FEMALE' | 'OTHER' | null;
+  occupation: 'STUDENT' | 'WORKING' | 'FREELANCER' | 'UNEMPLOYED' | 'RETIRED' | null;
+  verified: boolean;
+
+  // From TenantProfile model
+  budgetMin: number | null;
+  budgetMax: number | null;
+  moveInDate: string | null;
+  contractType: ContractType | null;
+  smoker: boolean;
+  hasPets: boolean;
+  hasGuarantor: boolean;
+  incomeRange: IncomeRange | null;
+  languages: string[];
+  referencesAvailable: boolean;
+  employmentVerified: boolean;
+  incomeVerified: boolean;
+}
+
 // ==================== Listing Types ====================
 
 export interface ListingCard {
@@ -143,6 +173,7 @@ export interface Booking {
   id: string;
   slot: VisitSlot;
   listing: ListingCard;
+  tenant: TenantProfileCard;
   status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW';
   message: string | null;
   createdAt: string;
@@ -155,6 +186,7 @@ export interface Conversation {
   id: string;
   listing: ListingCard | null;
   participants: UserPublic[];
+  tenantProfile: TenantProfileCard | null;
   lastMessage: Message | null;
   unreadCount: number;
   updatedAt: string;

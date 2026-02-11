@@ -1,24 +1,46 @@
 import { NextResponse } from 'next/server';
 import type { ApiResponse, VisitSlot } from '@roommate/shared';
-
-// Mock available slots
-const mockSlots: VisitSlot[] = [
-  { id: 's1', date: '2024-02-15', startTime: '18:00', endTime: '18:30', type: 'SINGLE', maxGuests: 1, bookedCount: 0, available: true },
-  { id: 's2', date: '2024-02-16', startTime: '10:00', endTime: '12:00', type: 'OPENDAY', maxGuests: 10, bookedCount: 3, available: true },
-  { id: 's3', date: '2024-02-16', startTime: '15:00', endTime: '15:30', type: 'SINGLE', maxGuests: 1, bookedCount: 0, available: true },
-  { id: 's4', date: '2024-02-17', startTime: '11:00', endTime: '13:00', type: 'OPENDAY', maxGuests: 10, bookedCount: 5, available: true },
-  { id: 's5', date: '2024-02-18', startTime: '17:00', endTime: '17:30', type: 'VIRTUAL', maxGuests: 1, bookedCount: 0, available: true },
-];
+import { prisma } from '@roommate/database';
 
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  // In produzione, fetch dal database
-  const response: ApiResponse<VisitSlot[]> = {
-    success: true,
-    data: mockSlots,
-  };
+  try {
+    const slots = await prisma.visitSlot.findMany({
+      where: {
+        listingId: params.id,
+        date: { gte: new Date() },
+      },
+      include: {
+        bookings: true,
+      },
+      orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
+    });
 
-  return NextResponse.json(response);
+    const data: VisitSlot[] = slots.map((s) => ({
+      id: s.id,
+      date: s.date.toISOString().split('T')[0],
+      startTime: s.startTime,
+      endTime: s.endTime,
+      type: s.type,
+      maxGuests: s.maxGuests,
+      bookedCount: s.bookings.length,
+      available: s.bookings.length < s.maxGuests,
+    }));
+
+    const response: ApiResponse<VisitSlot[]> = {
+      success: true,
+      data,
+    };
+
+    return NextResponse.json(response);
+  } catch (error) {
+    console.error('Error fetching slots:', error);
+    const response: ApiResponse<null> = {
+      success: false,
+      error: 'Error fetching visit slots',
+    };
+    return NextResponse.json(response, { status: 500 });
+  }
 }

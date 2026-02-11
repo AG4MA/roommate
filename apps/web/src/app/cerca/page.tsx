@@ -1,7 +1,5 @@
-import { Suspense } from 'react';
 import { SearchFilters } from '@/components/search/SearchFilters';
-import { SearchResults } from '@/components/search/SearchResults';
-import { SearchMap } from '@/components/search/SearchMap';
+import { SearchContent } from '@/components/search/SearchContent';
 
 export default function CercaPage() {
   return (
@@ -12,21 +10,7 @@ export default function CercaPage() {
       </div>
 
       {/* Main Content - Split View */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Results List */}
-        <div className="w-full lg:w-1/2 overflow-y-auto p-4 bg-gray-50">
-          <Suspense fallback={<div className="text-center py-8">Caricamento...</div>}>
-            <SearchResults />
-          </Suspense>
-        </div>
-
-        {/* Map */}
-        <div className="hidden lg:block lg:w-1/2 relative">
-          <Suspense fallback={<div className="h-full bg-gray-200 animate-pulse" />}>
-            <SearchMap />
-          </Suspense>
-        </div>
-      </div>
+      <SearchContent />
     </div>
   );
 }

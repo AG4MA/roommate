@@ -1,79 +1,38 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
-import { MapPin, Euro, Users, Wifi, Car, Leaf } from 'lucide-react';
+import { MapPin, Users, Wifi } from 'lucide-react';
+import type { ListingCard } from '@roommate/shared';
+import { getRoomTypeLabel } from '@roommate/shared';
 
-// Mock data - verrà sostituito con dati reali da API
-const mockRooms = [
-  {
-    id: '1',
-    title: 'Stanza singola luminosa - Porta Venezia',
-    address: 'Via Lecco, Milano',
-    price: 550,
-    images: ['/placeholder-room.jpg'],
-    roomType: 'single',
-    size: 14,
-    availableFrom: '2024-03-01',
-    features: ['wifi', 'furnished', 'balcony'],
-    currentRoommates: 2,
-    maxRoommates: 3,
-    latitude: 45.4773,
-    longitude: 9.2055,
-  },
-  {
-    id: '2',
-    title: 'Ampia stanza doppia con bagno privato',
-    address: 'Via Padova 120, Milano',
-    price: 450,
-    images: ['/placeholder-room.jpg'],
-    roomType: 'double',
-    size: 18,
-    availableFrom: '2024-02-15',
-    features: ['wifi', 'privateBath', 'furnished'],
-    currentRoommates: 1,
-    maxRoommates: 2,
-    latitude: 45.4951,
-    longitude: 9.2264,
-  },
-  {
-    id: '3',
-    title: 'Monolocale accogliente zona Navigli',
-    address: 'Ripa di Porta Ticinese, Milano',
-    price: 750,
-    images: ['/placeholder-room.jpg'],
-    roomType: 'studio',
-    size: 28,
-    availableFrom: '2024-03-15',
-    features: ['wifi', 'furnished', 'parking', 'balcony'],
-    currentRoommates: 0,
-    maxRoommates: 1,
-    latitude: 45.4485,
-    longitude: 9.1769,
-  },
-  {
-    id: '4',
-    title: 'Stanza singola in appartamento ristrutturato',
-    address: 'Corso Buenos Aires, Milano',
-    price: 600,
-    images: ['/placeholder-room.jpg'],
-    roomType: 'single',
-    size: 12,
-    availableFrom: '2024-02-20',
-    features: ['wifi', 'furnished', 'aircon'],
-    currentRoommates: 3,
-    maxRoommates: 4,
-    latitude: 45.4815,
-    longitude: 9.2127,
-  },
-];
+interface SearchResultsProps {
+  listings: ListingCard[];
+  loading?: boolean;
+}
 
-export function SearchResults() {
+export function SearchResults({ listings, loading }: SearchResultsProps) {
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="bg-white rounded-xl shadow-sm overflow-hidden flex animate-pulse">
+            <div className="w-48 h-40 bg-gray-200" />
+            <div className="flex-1 p-4 space-y-3">
+              <div className="h-5 bg-gray-200 rounded w-3/4" />
+              <div className="h-4 bg-gray-200 rounded w-1/2" />
+              <div className="h-4 bg-gray-200 rounded w-1/4" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold text-gray-800">
-          {mockRooms.length} stanze trovate
+          {listings.length} stanze trovate
         </h2>
         <select className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
           <option>Ordina per: Più recenti</option>
@@ -83,24 +42,39 @@ export function SearchResults() {
         </select>
       </div>
 
-      <div className="space-y-4">
-        {mockRooms.map((room) => (
-          <RoomCard key={room.id} room={room} />
-        ))}
-      </div>
+      {listings.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-gray-500 text-lg">Nessuna stanza trovata</p>
+          <p className="text-gray-400 text-sm mt-1">Prova a modificare i filtri di ricerca</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {listings.map((room) => (
+            <RoomCard key={room.id} room={room} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function RoomCard({ room }: { room: typeof mockRooms[0] }) {
+function RoomCard({ room }: { room: ListingCard }) {
   return (
     <Link href={`/stanza/${room.id}`}>
       <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden flex">
         {/* Image */}
         <div className="w-48 h-40 relative shrink-0 bg-gray-200">
-          <div className="absolute inset-0 flex items-center justify-center text-gray-400">
-            <MapPin className="w-8 h-8" />
-          </div>
+          {room.images.length > 0 && room.images[0].url !== '/placeholder.jpg' ? (
+            <img
+              src={room.images[0].url}
+              alt={room.title}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center text-gray-400">
+              <MapPin className="w-8 h-8" />
+            </div>
+          )}
         </div>
 
         {/* Content */}
@@ -121,19 +95,14 @@ function RoomCard({ room }: { room: typeof mockRooms[0] }) {
 
           <div className="mt-3 flex flex-wrap gap-2">
             <span className="px-2 py-1 bg-gray-100 rounded-full text-xs text-gray-600">
-              {room.roomType === 'single' ? 'Singola' : room.roomType === 'double' ? 'Doppia' : 'Monolocale'}
+              {getRoomTypeLabel(room.roomType)}
             </span>
             <span className="px-2 py-1 bg-gray-100 rounded-full text-xs text-gray-600">
-              {room.size}m²
+              {room.roomSize}m²
             </span>
-            {room.features.includes('wifi') && (
+            {room.features.wifi && (
               <span className="px-2 py-1 bg-blue-50 rounded-full text-xs text-blue-600 flex items-center gap-1">
                 <Wifi className="w-3 h-3" /> WiFi
-              </span>
-            )}
-            {room.features.includes('parking') && (
-              <span className="px-2 py-1 bg-green-50 rounded-full text-xs text-green-600 flex items-center gap-1">
-                <Car className="w-3 h-3" /> Parcheggio
               </span>
             )}
           </div>

@@ -35,7 +35,7 @@ export function BookingWidget({ room, availableSlots, landlord }: BookingWidgetP
   const handleBooking = () => {
     if (selectedSlot) {
       setShowConfirmation(true);
-      // In produzione, chiamerebbe l'API per creare la prenotazione
+      // In production, this would call the API to create the booking
     }
   };
 

@@ -58,17 +58,26 @@ model TenantProfile {
   id             String  @id @default(cuid())
   userId         String  @unique
   user           User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   // Preferences
   budgetMin      Int?
   budgetMax      Int?
   preferredAreas String[]
   moveInDate     DateTime?
-  
+
+  // Screening info
+  contractType        ContractType?
+  smoker              Boolean       @default(false)
+  hasPets             Boolean       @default(false)
+  hasGuarantor        Boolean       @default(false)
+  incomeRange         IncomeRange?
+  languages           String[]
+  referencesAvailable Boolean       @default(false)
+
   // Verification
   employmentVerified Boolean @default(false)
   incomeVerified     Boolean @default(false)
-  
+
   @@map("tenant_profiles")
 }
 
@@ -84,6 +93,20 @@ enum Occupation {
   FREELANCER
   UNEMPLOYED
   RETIRED
+}
+
+enum ContractType {
+  PERMANENT   // Permanent contract
+  TEMPORARY   // Fixed-term contract
+  INTERNSHIP  // Internship/Traineeship
+}
+
+enum IncomeRange {
+  UNDER_1000
+  FROM_1000_TO_1500
+  FROM_1500_TO_2000
+  FROM_2000_TO_3000
+  OVER_3000
 }
 
 // ==================== LISTINGS ====================

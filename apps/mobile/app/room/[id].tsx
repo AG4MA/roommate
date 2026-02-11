@@ -44,7 +44,7 @@ La stanza è molto luminosa grazie alla finestra che affaccia sul balcone privat
 
 export default function RoomDetailScreen() {
   const { id } = useLocalSearchParams();
-  const room = mockRoom; // In produzione, fetch dal server
+  const room = mockRoom; // In production, fetch from server
 
   return (
     <View style={styles.container}>

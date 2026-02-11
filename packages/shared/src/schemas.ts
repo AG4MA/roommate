@@ -23,6 +23,22 @@ export const updateProfileSchema = z.object({
   occupation: z.enum(['STUDENT', 'WORKING', 'FREELANCER', 'UNEMPLOYED', 'RETIRED']).optional(),
 });
 
+// ==================== Tenant Profile Schemas ====================
+
+export const updateTenantProfileSchema = z.object({
+  budgetMin: z.number().min(0).optional(),
+  budgetMax: z.number().min(0).optional(),
+  moveInDate: z.string().optional(),
+  preferredAreas: z.array(z.string()).optional(),
+  contractType: z.enum(['PERMANENT', 'TEMPORARY', 'INTERNSHIP']).optional(),
+  smoker: z.boolean().optional(),
+  hasPets: z.boolean().optional(),
+  hasGuarantor: z.boolean().optional(),
+  incomeRange: z.enum(['UNDER_1000', 'FROM_1000_TO_1500', 'FROM_1500_TO_2000', 'FROM_2000_TO_3000', 'OVER_3000']).optional(),
+  languages: z.array(z.string()).optional(),
+  referencesAvailable: z.boolean().optional(),
+});
+
 // ==================== Listing Schemas ====================
 
 export const createListingSchema = z.object({
@@ -141,4 +157,5 @@ export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 export type CreateListingInput = z.infer<typeof createListingSchema>;
 export type SearchListingsInput = z.infer<typeof searchListingsSchema>;
 export type CreateBookingInput = z.infer<typeof createBookingSchema>;
+export type UpdateTenantProfileInput = z.infer<typeof updateTenantProfileSchema>;
 export type SendMessageInput = z.infer<typeof sendMessageSchema>;

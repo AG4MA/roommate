@@ -1,12 +1,92 @@
 import { NextResponse } from 'next/server';
 import type { ApiResponse, Booking } from '@roommate/shared';
-import { createBookingSchema } from '@roommate/shared';
+import { createBookingSchema, calculateAge } from '@roommate/shared';
+import { prisma } from '@roommate/database';
+
+// Helper to build a TenantProfileCard from Prisma user+profile
+function buildTenantCard(tenant: any) {
+  return {
+    id: tenant.id,
+    name: tenant.name,
+    avatar: tenant.avatar,
+    age: tenant.dateOfBirth ? calculateAge(tenant.dateOfBirth) : null,
+    gender: tenant.gender,
+    occupation: tenant.occupation,
+    verified: tenant.verified,
+    budgetMin: tenant.tenantProfile?.budgetMin ?? null,
+    budgetMax: tenant.tenantProfile?.budgetMax ?? null,
+    moveInDate: tenant.tenantProfile?.moveInDate?.toISOString() ?? null,
+    contractType: tenant.tenantProfile?.contractType ?? null,
+    smoker: tenant.tenantProfile?.smoker ?? false,
+    hasPets: tenant.tenantProfile?.hasPets ?? false,
+    hasGuarantor: tenant.tenantProfile?.hasGuarantor ?? false,
+    incomeRange: tenant.tenantProfile?.incomeRange ?? null,
+    languages: tenant.tenantProfile?.languages ?? [],
+    referencesAvailable: tenant.tenantProfile?.referencesAvailable ?? false,
+    employmentVerified: tenant.tenantProfile?.employmentVerified ?? false,
+    incomeVerified: tenant.tenantProfile?.incomeVerified ?? false,
+  };
+}
+
+// Helper to build a ListingCard from Prisma listing
+function buildListingCard(listing: any) {
+  return {
+    id: listing.id,
+    title: listing.title,
+    address: listing.address,
+    city: listing.city,
+    neighborhood: listing.neighborhood,
+    price: listing.price,
+    expenses: listing.expenses,
+    roomType: listing.roomType,
+    roomSize: listing.roomSize,
+    availableFrom: listing.availableFrom.toISOString(),
+    images: listing.images.map((img: any) => ({ url: img.url })),
+    features: {
+      wifi: listing.features?.wifi ?? false,
+      furnished: listing.features?.furnished ?? false,
+      privateBath: listing.features?.privateBath ?? false,
+    },
+    currentRoommates: listing.roommates.length,
+    maxRoommates: listing.roommates.length + 1,
+    latitude: listing.latitude,
+    longitude: listing.longitude,
+  };
+}
+
+// Helper to build a VisitSlot from Prisma slot
+function buildSlotData(slot: any) {
+  return {
+    id: slot.id,
+    date: slot.date.toISOString().split('T')[0],
+    startTime: slot.startTime,
+    endTime: slot.endTime,
+    type: slot.type,
+    maxGuests: slot.maxGuests,
+    bookedCount: slot.bookings.length,
+    available: slot.bookings.length < slot.maxGuests,
+  };
+}
+
+const bookingIncludes = {
+  slot: { include: { bookings: true } },
+  listing: {
+    include: {
+      images: { orderBy: { order: 'asc' as const }, take: 1 },
+      features: true,
+      roommates: true,
+    },
+  },
+  tenant: {
+    include: { tenantProfile: true },
+  },
+};
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    
-    // Validate input
+
+    // Validate core booking fields
     const result = createBookingSchema.safeParse(body);
     if (!result.success) {
       const response: ApiResponse<null> = {
@@ -16,56 +96,87 @@ export async function POST(request: Request) {
       return NextResponse.json(response, { status: 400 });
     }
 
-    // In produzione:
-    // 1. Verificare che l'utente sia autenticato
-    // 2. Verificare che lo slot sia ancora disponibile
-    // 3. Creare la prenotazione nel database
-    // 4. Inviare notifica al proprietario
+    // TODO: Replace with session auth (Phase 1)
+    const tenantId = body.tenantId as string | undefined;
+    if (!tenantId) {
+      const response: ApiResponse<null> = {
+        success: false,
+        error: 'Authentication required',
+      };
+      return NextResponse.json(response, { status: 401 });
+    }
 
-    const mockBooking: Booking = {
-      id: 'b-' + Date.now(),
-      slot: {
-        id: result.data.slotId,
-        date: '2024-02-15',
-        startTime: '18:00',
-        endTime: '18:30',
-        type: 'SINGLE',
-        maxGuests: 1,
-        bookedCount: 1,
-        available: false,
+    // Verify the slot exists and is still available
+    const slot = await prisma.visitSlot.findUnique({
+      where: { id: result.data.slotId },
+      include: { bookings: true },
+    });
+
+    if (!slot) {
+      const response: ApiResponse<null> = {
+        success: false,
+        error: 'Slot non trovato',
+      };
+      return NextResponse.json(response, { status: 404 });
+    }
+
+    if (slot.bookings.length >= slot.maxGuests) {
+      const response: ApiResponse<null> = {
+        success: false,
+        error: 'Slot non più disponibile',
+      };
+      return NextResponse.json(response, { status: 409 });
+    }
+
+    // Check for duplicate booking
+    const existingBooking = await prisma.booking.findUnique({
+      where: {
+        slotId_tenantId: {
+          slotId: result.data.slotId,
+          tenantId,
+        },
       },
-      listing: {
-        id: '1',
-        title: 'Stanza singola luminosa - Porta Venezia',
-        address: 'Via Lecco 15, Milano',
-        city: 'Milano',
-        neighborhood: 'Porta Venezia',
-        price: 550,
-        expenses: 80,
-        roomType: 'SINGLE',
-        roomSize: 14,
-        availableFrom: '2024-03-01',
-        images: [{ url: '/placeholder.jpg' }],
-        features: { wifi: true, furnished: true, privateBath: false },
-        currentRoommates: 2,
-        maxRoommates: 3,
-        latitude: 45.4773,
-        longitude: 9.2055,
+    });
+
+    if (existingBooking) {
+      const response: ApiResponse<null> = {
+        success: false,
+        error: 'Hai già prenotato questo slot',
+      };
+      return NextResponse.json(response, { status: 409 });
+    }
+
+    // Create booking
+    const booking = await prisma.booking.create({
+      data: {
+        slotId: result.data.slotId,
+        listingId: slot.listingId,
+        tenantId,
+        message: result.data.message || null,
       },
-      status: 'PENDING',
-      message: result.data.message || null,
-      createdAt: new Date().toISOString(),
-      confirmedAt: null,
+      include: bookingIncludes,
+    });
+
+    const data: Booking = {
+      id: booking.id,
+      slot: buildSlotData(booking.slot),
+      listing: buildListingCard(booking.listing),
+      tenant: buildTenantCard(booking.tenant),
+      status: booking.status,
+      message: booking.message,
+      createdAt: booking.createdAt.toISOString(),
+      confirmedAt: booking.confirmedAt?.toISOString() ?? null,
     };
 
     const response: ApiResponse<Booking> = {
       success: true,
-      data: mockBooking,
+      data,
       message: 'Prenotazione creata con successo',
     };
 
     return NextResponse.json(response, { status: 201 });
-  } catch {
+  } catch (error) {
+    console.error('Error creating booking:', error);
     const response: ApiResponse<null> = {
       success: false,
       error: 'Errore durante la creazione della prenotazione',
@@ -75,11 +186,54 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
-  // In produzione: fetch bookings dell'utente autenticato
-  const response: ApiResponse<Booking[]> = {
-    success: true,
-    data: [],
-  };
+  try {
+    const { searchParams } = new URL(request.url);
+    // TODO: Replace with session auth (Phase 1)
+    const userId = searchParams.get('userId');
+    const role = searchParams.get('role') || 'tenant';
 
-  return NextResponse.json(response);
+    if (!userId) {
+      const response: ApiResponse<null> = {
+        success: false,
+        error: 'Authentication required',
+      };
+      return NextResponse.json(response, { status: 401 });
+    }
+
+    const whereClause =
+      role === 'landlord'
+        ? { listing: { landlordId: userId } }
+        : { tenantId: userId };
+
+    const bookings = await prisma.booking.findMany({
+      where: whereClause,
+      include: bookingIncludes,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const data: Booking[] = bookings.map((b) => ({
+      id: b.id,
+      slot: buildSlotData(b.slot),
+      listing: buildListingCard(b.listing),
+      tenant: buildTenantCard(b.tenant),
+      status: b.status,
+      message: b.message,
+      createdAt: b.createdAt.toISOString(),
+      confirmedAt: b.confirmedAt?.toISOString() ?? null,
+    }));
+
+    const response: ApiResponse<Booking[]> = {
+      success: true,
+      data,
+    };
+
+    return NextResponse.json(response);
+  } catch (error) {
+    console.error('Error fetching bookings:', error);
+    const response: ApiResponse<null> = {
+      success: false,
+      error: 'Error fetching bookings',
+    };
+    return NextResponse.json(response, { status: 500 });
+  }
 }

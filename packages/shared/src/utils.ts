@@ -72,6 +72,46 @@ export function getGenderLabel(gender: string): string {
   return labels[gender] || gender;
 }
 
+// ==================== Tenant Profile Utils ====================
+
+export function getContractTypeLabel(type: string): string {
+  const labels: Record<string, string> = {
+    PERMANENT: 'Indeterminato',
+    TEMPORARY: 'Determinato',
+    INTERNSHIP: 'Stage/Tirocinio',
+  };
+  return labels[type] || type;
+}
+
+export function getIncomeRangeLabel(range: string): string {
+  const labels: Record<string, string> = {
+    UNDER_1000: 'Meno di 1.000 \u20AC',
+    FROM_1000_TO_1500: '1.000 - 1.500 \u20AC',
+    FROM_1500_TO_2000: '1.500 - 2.000 \u20AC',
+    FROM_2000_TO_3000: '2.000 - 3.000 \u20AC',
+    OVER_3000: 'Oltre 3.000 \u20AC',
+  };
+  return labels[range] || range;
+}
+
+export function calculateAge(dateOfBirth: string | Date): number {
+  const birth = new Date(dateOfBirth);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age;
+}
+
+export function formatBudgetRange(min: number | null, max: number | null): string {
+  if (min && max) return `${formatPrice(min)} - ${formatPrice(max)}`;
+  if (min) return `Da ${formatPrice(min)}`;
+  if (max) return `Fino a ${formatPrice(max)}`;
+  return 'Non specificato';
+}
+
 // ==================== Validation Utils ====================
 
 export function isValidEmail(email: string): boolean {

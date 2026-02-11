@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { Menu, X, Home, User, LogIn } from 'lucide-react';
+import { Menu, X, Home, User, LogIn, CalendarCheck, UserCircle } from 'lucide-react';
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -32,8 +32,22 @@ export function Navbar() {
             </Link>
           </div>
 
-          {/* Auth Buttons */}
+          {/* User Links */}
           <div className="hidden md:flex items-center gap-3">
+            <Link
+              href="/prenotazioni"
+              className="flex items-center gap-2 text-gray-600 hover:text-primary-600 transition-colors"
+            >
+              <CalendarCheck className="w-5 h-5" />
+              Prenotazioni
+            </Link>
+            <Link
+              href="/profilo/inquilino"
+              className="flex items-center gap-2 text-gray-600 hover:text-primary-600 transition-colors"
+            >
+              <UserCircle className="w-5 h-5" />
+              Profilo
+            </Link>
             <Link
               href="/login"
               className="flex items-center gap-2 text-gray-600 hover:text-primary-600 transition-colors"
@@ -86,6 +100,20 @@ export function Navbar() {
                 onClick={() => setIsMenuOpen(false)}
               >
                 Come funziona
+              </Link>
+              <Link
+                href="/prenotazioni"
+                className="text-gray-600 hover:text-primary-600 transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Prenotazioni
+              </Link>
+              <Link
+                href="/profilo/inquilino"
+                className="text-gray-600 hover:text-primary-600 transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Profilo inquilino
               </Link>
               <hr className="my-2" />
               <Link

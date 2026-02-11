@@ -19,7 +19,7 @@ export default function BookingScreen() {
 
   const handleBook = () => {
     if (selectedSlot) {
-      // In produzione, chiamata API
+      // In production, API call
       setIsBooked(true);
     }
   };

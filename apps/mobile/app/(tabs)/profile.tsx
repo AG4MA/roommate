@@ -6,7 +6,7 @@ import {
 } from 'lucide-react-native';
 
 export default function ProfileScreen() {
-  // In produzione, verificare se l'utente è loggato
+  // In production, check if user is logged in
   const isLoggedIn = false;
 
   if (!isLoggedIn) {

@@ -1,108 +1,128 @@
 import { NextResponse } from 'next/server';
 import type { ApiResponse, ListingDetail } from '@roommate/shared';
-
-// Mock data dettagliato
-const mockListingDetail: ListingDetail = {
-  id: '1',
-  title: 'Stanza singola luminosa con balcone - Porta Venezia',
-  description: `Bellissima stanza singola in appartamento completamente ristrutturato, situato in una delle zone più vivaci e ben collegate di Milano.
-
-La stanza è molto luminosa grazie alla finestra che affaccia sul balcone privato. È arredata con letto matrimoniale, armadio a 4 ante, scrivania e sedia ergonomica - perfetta per smart working o studio.
-
-L'appartamento è composto da 3 stanze, 2 bagni (uno vicino alla stanza disponibile), cucina abitabile completamente attrezzata e un ampio soggiorno condiviso.
-
-Cerchiamo una persona tranquilla, pulita e rispettosa degli spazi comuni. Siamo due ragazzi lavoratori con orari regolari.`,
-  address: 'Via Lecco 15, Milano',
-  city: 'Milano',
-  neighborhood: 'Porta Venezia',
-  price: 550,
-  expenses: 80,
-  deposit: 1100,
-  roomType: 'SINGLE',
-  roomSize: 14,
-  totalSize: 85,
-  floor: 3,
-  hasElevator: true,
-  availableFrom: '2024-03-01',
-  minStay: 6,
-  maxStay: null,
-  images: [
-    { url: '/placeholder-1.jpg' },
-    { url: '/placeholder-2.jpg' },
-    { url: '/placeholder-3.jpg' },
-  ],
-  features: {
-    wifi: true,
-    furnished: true,
-    privateBath: false,
-    balcony: true,
-    aircon: true,
-    heating: true,
-    washingMachine: true,
-    dishwasher: true,
-    parking: false,
-    garden: false,
-    terrace: false,
-  },
-  rules: {
-    petsAllowed: false,
-    smokingAllowed: false,
-    couplesAllowed: false,
-    guestsAllowed: true,
-    cleaningSchedule: 'A turni settimanali',
-    quietHoursStart: '22:00',
-    quietHoursEnd: '08:00',
-  },
-  preferences: {
-    gender: null,
-    ageMin: 23,
-    ageMax: 35,
-    occupation: ['WORKING', 'STUDENT'],
-    languages: ['italiano', 'inglese'],
-  },
-  roommates: [
-    { id: '1', name: 'Marco', age: 28, occupation: 'Software Developer', bio: null, avatar: null },
-    { id: '2', name: 'Luca', age: 26, occupation: 'Marketing Manager', bio: null, avatar: null },
-  ],
-  landlord: {
-    id: '1',
-    name: 'Anna Rossi',
-    avatar: null,
-    verified: true,
-    createdAt: '2023-01-15',
-    responseRate: 95,
-    responseTime: 45,
-    totalListings: 3,
-  },
-  currentRoommates: 2,
-  maxRoommates: 3,
-  latitude: 45.4773,
-  longitude: 9.2055,
-  virtualTourUrl: null,
-  views: 234,
-  createdAt: '2024-01-20',
-  publishedAt: '2024-01-20',
-};
+import { prisma } from '@roommate/database';
 
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  // In produzione, fetch dal database con Prisma
-  // const listing = await prisma.listing.findUnique({ where: { id: params.id }, ... });
+  try {
+    const listing = await prisma.listing.findUnique({
+      where: { id: params.id },
+      include: {
+        images: { orderBy: { order: 'asc' } },
+        features: true,
+        rules: true,
+        preferences: true,
+        roommates: true,
+        landlord: {
+          include: { landlordProfile: true },
+        },
+      },
+    });
 
-  if (params.id !== '1') {
+    if (!listing) {
+      const response: ApiResponse<null> = {
+        success: false,
+        error: 'Listing not found',
+      };
+      return NextResponse.json(response, { status: 404 });
+    }
+
+    // Increment view count
+    await prisma.listing.update({
+      where: { id: params.id },
+      data: { views: { increment: 1 } },
+    });
+
+    const detail: ListingDetail = {
+      id: listing.id,
+      title: listing.title,
+      description: listing.description,
+      address: listing.address,
+      city: listing.city,
+      neighborhood: listing.neighborhood,
+      price: listing.price,
+      expenses: listing.expenses,
+      deposit: listing.deposit,
+      roomType: listing.roomType,
+      roomSize: listing.roomSize,
+      totalSize: listing.totalSize,
+      floor: listing.floor,
+      hasElevator: listing.hasElevator,
+      availableFrom: listing.availableFrom.toISOString(),
+      minStay: listing.minStay,
+      maxStay: listing.maxStay,
+      images: listing.images.map((img) => ({ url: img.url })),
+      features: {
+        wifi: listing.features?.wifi ?? false,
+        furnished: listing.features?.furnished ?? false,
+        privateBath: listing.features?.privateBath ?? false,
+        balcony: listing.features?.balcony ?? false,
+        aircon: listing.features?.aircon ?? false,
+        heating: listing.features?.heating ?? true,
+        washingMachine: listing.features?.washingMachine ?? false,
+        dishwasher: listing.features?.dishwasher ?? false,
+        parking: listing.features?.parking ?? false,
+        garden: listing.features?.garden ?? false,
+        terrace: listing.features?.terrace ?? false,
+      },
+      rules: {
+        petsAllowed: listing.rules?.petsAllowed ?? false,
+        smokingAllowed: listing.rules?.smokingAllowed ?? false,
+        couplesAllowed: listing.rules?.couplesAllowed ?? false,
+        guestsAllowed: listing.rules?.guestsAllowed ?? true,
+        cleaningSchedule: listing.rules?.cleaningSchedule ?? null,
+        quietHoursStart: listing.rules?.quietHoursStart ?? null,
+        quietHoursEnd: listing.rules?.quietHoursEnd ?? null,
+      },
+      preferences: {
+        gender: listing.preferences?.gender ?? null,
+        ageMin: listing.preferences?.ageMin ?? null,
+        ageMax: listing.preferences?.ageMax ?? null,
+        occupation: listing.preferences?.occupation ?? [],
+        languages: listing.preferences?.languages ?? [],
+      },
+      roommates: listing.roommates.map((r) => ({
+        id: r.id,
+        name: r.name,
+        age: r.age,
+        occupation: r.occupation,
+        bio: r.bio,
+        avatar: r.avatar,
+      })),
+      landlord: {
+        id: listing.landlord.id,
+        name: listing.landlord.name,
+        avatar: listing.landlord.avatar,
+        verified: listing.landlord.verified,
+        createdAt: listing.landlord.createdAt.toISOString(),
+        responseRate: listing.landlord.landlordProfile?.responseRate ?? 0,
+        responseTime: listing.landlord.landlordProfile?.responseTime ?? 0,
+        totalListings: listing.landlord.landlordProfile?.totalListings ?? 0,
+      },
+      currentRoommates: listing.roommates.length,
+      maxRoommates: listing.roommates.length + 1,
+      latitude: listing.latitude,
+      longitude: listing.longitude,
+      virtualTourUrl: listing.virtualTourUrl,
+      views: listing.views,
+      createdAt: listing.createdAt.toISOString(),
+      publishedAt: listing.publishedAt?.toISOString() ?? null,
+    };
+
+    const response: ApiResponse<ListingDetail> = {
+      success: true,
+      data: detail,
+    };
+
+    return NextResponse.json(response);
+  } catch (error) {
+    console.error('Error fetching listing:', error);
     const response: ApiResponse<null> = {
       success: false,
-      error: 'Annuncio non trovato',
+      error: 'Error fetching listing',
     };
-    return NextResponse.json(response, { status: 404 });
+    return NextResponse.json(response, { status: 500 });
   }
-
-  const response: ApiResponse<ListingDetail> = {
-    success: true,
-    data: mockListingDetail,
-  };
-
-  return NextResponse.json(response);
 }
