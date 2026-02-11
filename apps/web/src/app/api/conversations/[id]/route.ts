@@ -89,7 +89,7 @@ export async function GET(
 
     // Get other user
     const otherParticipant = conversation.participants.find(
-      (p) => p.userId !== session.user.id
+      (p: { userId: string }) => p.userId !== session.user.id
     );
 
     const otherUser = otherParticipant
