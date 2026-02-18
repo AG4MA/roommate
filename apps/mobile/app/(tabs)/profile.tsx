@@ -1,8 +1,8 @@
 import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { Link, useRouter } from 'expo-router';
-import { 
-  User, Settings, Bell, Shield, HelpCircle, 
-  LogOut, ChevronRight, Home, Heart, Calendar
+import {
+  User, Settings, Bell, Shield, HelpCircle,
+  LogOut, ChevronRight, Home, Heart, Calendar, Users
 } from 'lucide-react-native';
 import { useAuthStore } from '../../store/auth';
 
@@ -110,6 +110,9 @@ export default function ProfileScreen() {
         )}
         {user.role === 'TENANT' && (
           <MenuItem icon={Heart} label="I miei interessi" onPress={() => router.push('/my-interests')} />
+        )}
+        {user.role === 'TENANT' && (
+          <MenuItem icon={Users} label="I miei gruppi" onPress={() => router.push('/groups')} />
         )}
         <MenuItem icon={Calendar} label="Le mie prenotazioni" onPress={() => router.push('/my-bookings')} />
         <MenuItem icon={Bell} label="Notifiche" />

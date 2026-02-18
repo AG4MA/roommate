@@ -200,6 +200,38 @@ export interface Message {
   readAt: string | null;
 }
 
+// ==================== Group Types ====================
+
+export type GroupRole = 'OWNER' | 'MEMBER';
+export type GroupMemberStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED';
+
+export interface GroupMember {
+  id: string;
+  userId: string;
+  name: string;
+  avatar: string | null;
+  role: GroupRole;
+  status: GroupMemberStatus;
+  joinedAt: string | null;
+  tenantProfile: TenantProfileCard | null;
+}
+
+export interface GroupSummary {
+  id: string;
+  name: string | null;
+  description: string | null;
+  maxMembers: number;
+  memberCount: number;
+  pendingCount: number;
+  members: Pick<GroupMember, 'userId' | 'name' | 'avatar' | 'role' | 'status'>[];
+  conversationId: string | null;
+  createdAt: string;
+}
+
+export interface GroupDetail extends GroupSummary {
+  members: GroupMember[];
+}
+
 // ==================== Search Types ====================
 
 export interface SearchFilters {

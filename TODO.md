@@ -137,6 +137,28 @@ All step components exist: `StepBasicInfo`, `StepLocation`, `StepFeatures`, `Ste
 
 ---
 
+### Phase 10: Housemate Group System 🆕 TODO
+
+**Concept**: Allow tenants to form housemate groups *before* renting, and apply to listings as a group.
+
+#### Features:
+- **Group Creation**: A tenant can create a "housemate group" and invite other registered tenants
+- **Group Invitations**: Invite via username/email, accept/decline flow
+- **Group Profile**: Combined group view showing all members' tenant profile cards (budget, occupation, contract type, etc.)
+- **Group Applications**: When expressing interest in a listing, a group applies together as a single unit (counts as 1 slot out of 6)
+- **Group Chat**: Internal group chat for members to coordinate before applying
+- **Landlord View**: Landlord sees the full group profile when reviewing interested applicants — can accept/reject the whole group
+- **Group Management**: Members can leave, group owner can remove members or dissolve the group
+
+#### Technical Notes:
+- New Prisma models: `HousemateGroup`, `GroupMembership` (with role: OWNER/MEMBER and status: PENDING/ACCEPTED/DECLINED)
+- Extend `Interest` model to support `groupId` (nullable — solo or group application)
+- Group profile card component (web + mobile) showing all members side by side
+- API routes: `/api/groups` (CRUD), `/api/groups/[id]/invite` (POST), `/api/groups/[id]/members` (GET/PUT/DELETE)
+- Update interest system to treat group as single applicant
+
+---
+
 ## Previous Context Summary
 
 Analysis:

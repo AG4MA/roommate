@@ -112,6 +112,25 @@ export function formatBudgetRange(min: number | null, max: number | null): strin
   return 'Non specificato';
 }
 
+// ==================== Group Utils ====================
+
+export function getGroupRoleLabel(role: string): string {
+  const labels: Record<string, string> = {
+    OWNER: 'Proprietario del gruppo',
+    MEMBER: 'Membro',
+  };
+  return labels[role] || role;
+}
+
+export function getGroupMemberStatusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    PENDING: 'In attesa',
+    ACCEPTED: 'Accettato',
+    DECLINED: 'Rifiutato',
+  };
+  return labels[status] || status;
+}
+
 // ==================== Validation Utils ====================
 
 export function isValidEmail(email: string): boolean {

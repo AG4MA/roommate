@@ -96,7 +96,53 @@ export async function POST(
       );
     }
 
-    // Check if user already expressed interest
+    // Parse optional groupId from body
+    let groupId: string | undefined;
+    try {
+      const body = await request.json();
+      groupId = body?.groupId;
+    } catch {
+      // No body or invalid JSON — solo interest
+    }
+
+    // Group application validation
+    if (groupId) {
+      const callerMembership = await prisma.groupMembership.findUnique({
+        where: { groupId_userId: { groupId, userId: session.user.id } },
+      });
+
+      if (!callerMembership || callerMembership.status !== 'ACCEPTED') {
+        return NextResponse.json<ApiResponse<null>>(
+          { success: false, error: 'Devi essere un membro attivo del gruppo' },
+          { status: 403 }
+        );
+      }
+
+      const acceptedCount = await prisma.groupMembership.count({
+        where: { groupId, status: 'ACCEPTED' },
+      });
+
+      if (acceptedCount < 2) {
+        return NextResponse.json<ApiResponse<null>>(
+          { success: false, error: 'Il gruppo deve avere almeno 2 membri per candidarsi' },
+          { status: 400 }
+        );
+      }
+
+      // Check no duplicate group interest for this listing
+      const existingGroupInterest = await prisma.interest.findFirst({
+        where: { listingId, groupId, status: { in: ['ACTIVE', 'WAITING'] } },
+      });
+
+      if (existingGroupInterest) {
+        return NextResponse.json<ApiResponse<null>>(
+          { success: false, error: 'Il gruppo ha già espresso interesse per questo annuncio' },
+          { status: 409 }
+        );
+      }
+    }
+
+    // Check if user already expressed interest (solo)
     const existingInterest = await prisma.interest.findUnique({
       where: {
         listingId_tenantId: {
@@ -134,6 +180,7 @@ export async function POST(
       data: {
         listingId,
         tenantId: session.user.id,
+        groupId: groupId || null,
         status: isWaiting ? 'WAITING' : 'ACTIVE',
         position,
         score,
@@ -150,6 +197,8 @@ export async function POST(
 
     const message = isWaiting
       ? `Sei in lista d'attesa (posizione ${position - MAX_ACTIVE_INTERESTS})`
+      : groupId
+      ? 'Interesse del gruppo registrato con successo'
       : 'Interesse registrato con successo';
 
     return NextResponse.json<ApiResponse<InterestData>>({

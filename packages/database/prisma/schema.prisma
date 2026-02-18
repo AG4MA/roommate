@@ -36,6 +36,7 @@ model User {
   favorites        Favorite[]
   interests        Interest[]
   wishes           Wish[]
+  groupMemberships GroupMembership[]
 
   @@map("users")
 }
@@ -353,13 +354,14 @@ enum BookingStatus {
 model Conversation {
   id          String    @id @default(cuid())
   listingId   String?
-  
+
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  
-  participants ConversationParticipant[]
-  messages     Message[]
-  
+
+  participants   ConversationParticipant[]
+  messages       Message[]
+  housemateGroup HousemateGroup?
+
   @@map("conversations")
 }
 
@@ -457,6 +459,10 @@ model Interest {
   tenantId    String
   tenant      User           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
+  // Optional group application
+  groupId     String?
+  group       HousemateGroup? @relation(fields: [groupId], references: [id])
+
   status      InterestStatus @default(ACTIVE)
   position    Int            @default(0) // 1-6 = active, 7+ = waiting list
   score       Int            @default(0) // engagement score
@@ -466,6 +472,7 @@ model Interest {
 
   @@unique([listingId, tenantId])
   @@index([listingId, status, position])
+  @@index([groupId])
   @@map("interests")
 }
 
@@ -508,5 +515,55 @@ model Wish {
 
   @@index([userId, active])
   @@map("wishes")
+}
+
+// ==================== HOUSEMATE GROUP SYSTEM ====================
+
+enum GroupRole {
+  OWNER
+  MEMBER
+}
+
+enum GroupMemberStatus {
+  PENDING    // Invitation sent, awaiting response
+  ACCEPTED   // Member accepted the invitation
+  DECLINED   // Member declined the invitation
+}
+
+model HousemateGroup {
+  id             String   @id @default(cuid())
+  name           String?
+  description    String?
+  maxMembers     Int      @default(4)
+
+  // Group chat conversation
+  conversationId String?  @unique
+  conversation   Conversation? @relation(fields: [conversationId], references: [id])
+
+  // Relations
+  memberships    GroupMembership[]
+  interests      Interest[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("housemate_groups")
+}
+
+model GroupMembership {
+  id        String            @id @default(cuid())
+  groupId   String
+  group     HousemateGroup    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      GroupRole         @default(MEMBER)
+  status    GroupMemberStatus @default(PENDING)
+  joinedAt  DateTime?         // Set when status becomes ACCEPTED
+
+  createdAt DateTime          @default(now())
+
+  @@unique([groupId, userId])
+  @@index([userId, status])
+  @@map("group_memberships")
 }
 

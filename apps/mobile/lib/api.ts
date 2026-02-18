@@ -297,9 +297,10 @@ export interface Interest {
   listing?: Listing;
 }
 
-export async function expressInterest(listingId: string): Promise<ApiResponse<Interest>> {
+export async function expressInterest(listingId: string, groupId?: string): Promise<ApiResponse<Interest>> {
   return apiRequest(`/api/listings/${listingId}/interest`, {
     method: 'POST',
+    body: groupId ? JSON.stringify({ groupId }) : undefined,
   });
 }
 
@@ -449,4 +450,105 @@ export async function deleteWish(id: string): Promise<ApiResponse<void>> {
   return apiRequest(`/api/wishes/${id}`, {
     method: 'DELETE',
   });
+}
+
+// ============ GROUPS API ============
+
+export interface HousemateGroup {
+  id: string;
+  name: string | null;
+  description: string | null;
+  maxMembers: number;
+  memberCount: number;
+  pendingCount: number;
+  members: {
+    userId: string;
+    name: string;
+    avatar: string | null;
+    role: 'OWNER' | 'MEMBER';
+    status: 'PENDING' | 'ACCEPTED' | 'DECLINED';
+  }[];
+  conversationId: string | null;
+  createdAt: string;
+}
+
+export interface HousemateGroupDetail extends HousemateGroup {
+  members: {
+    id: string;
+    userId: string;
+    name: string;
+    avatar: string | null;
+    role: 'OWNER' | 'MEMBER';
+    status: 'PENDING' | 'ACCEPTED' | 'DECLINED';
+    joinedAt: string | null;
+    tenantProfile: any | null;
+  }[];
+}
+
+export interface GroupInvitation {
+  membershipId: string;
+  group: {
+    id: string;
+    name: string | null;
+    description: string | null;
+    memberCount: number;
+  };
+  invitedBy: {
+    id: string;
+    name: string;
+    avatar: string | null;
+  };
+  createdAt: string;
+}
+
+export async function getMyGroups(): Promise<ApiResponse<HousemateGroup[]>> {
+  return apiRequest('/api/groups');
+}
+
+export async function getGroup(id: string): Promise<ApiResponse<HousemateGroupDetail>> {
+  return apiRequest(`/api/groups/${id}`);
+}
+
+export async function createGroup(data: { name?: string; description?: string; maxMembers?: number }): Promise<ApiResponse<HousemateGroup>> {
+  return apiRequest('/api/groups', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateGroup(id: string, data: { name?: string; description?: string; maxMembers?: number }): Promise<ApiResponse<HousemateGroup>> {
+  return apiRequest(`/api/groups/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteGroup(id: string): Promise<ApiResponse<void>> {
+  return apiRequest(`/api/groups/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function inviteGroupMember(groupId: string, email: string): Promise<ApiResponse<{ membershipId: string }>> {
+  return apiRequest(`/api/groups/${groupId}/invite`, {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function respondToGroupInvitation(groupId: string, membershipId: string, action: 'accept' | 'decline'): Promise<ApiResponse<void>> {
+  return apiRequest(`/api/groups/${groupId}/members/${membershipId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ action }),
+  });
+}
+
+export async function removeGroupMember(groupId: string, membershipId: string): Promise<ApiResponse<void>> {
+  return apiRequest(`/api/groups/${groupId}/members/${membershipId}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function getMyGroupInvitations(): Promise<ApiResponse<GroupInvitation[]>> {
+  return apiRequest('/api/groups/invitations');
 }

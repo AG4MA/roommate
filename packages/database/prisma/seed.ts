@@ -10,6 +10,8 @@ async function main() {
   const passwordHash = await bcrypt.hash('password123', 10);
 
   // Clean existing data
+  await prisma.groupMembership.deleteMany();
+  await prisma.housemateGroup.deleteMany();
   await prisma.message.deleteMany();
   await prisma.conversationParticipant.deleteMany();
   await prisma.conversation.deleteMany();
@@ -763,8 +765,58 @@ async function main() {
     },
   });
 
+  // ==================== HOUSEMATE GROUPS ====================
+
+  // Create a group conversation
+  const groupConversation = await prisma.conversation.create({
+    data: {
+      participants: {
+        create: [
+          { userId: tenant1.id },
+          { userId: tenant4.id },
+          { userId: tenant5.id },
+        ],
+      },
+      messages: {
+        create: [
+          {
+            senderId: tenant1.id,
+            content: 'Ciao ragazze! Ho creato il gruppo per cercare casa insieme.',
+            createdAt: new Date('2024-02-12T09:00:00Z'),
+          },
+          {
+            senderId: tenant4.id,
+            content: 'Ottimo! Ho visto un paio di annunci interessanti in zona Città Studi.',
+            createdAt: new Date('2024-02-12T09:15:00Z'),
+          },
+          {
+            senderId: tenant1.id,
+            content: 'Perfetto, guardiamoli insieme stasera!',
+            createdAt: new Date('2024-02-12T09:20:00Z'),
+          },
+        ],
+      },
+    },
+  });
+
+  await prisma.housemateGroup.create({
+    data: {
+      name: 'Amiche di Milano',
+      description: 'Cerchiamo un appartamento grande in zona centro/est Milano',
+      maxMembers: 4,
+      conversationId: groupConversation.id,
+      memberships: {
+        create: [
+          { userId: tenant1.id, role: 'OWNER', status: 'ACCEPTED', joinedAt: new Date('2024-02-12') },
+          { userId: tenant4.id, role: 'MEMBER', status: 'ACCEPTED', joinedAt: new Date('2024-02-12') },
+          { userId: tenant5.id, role: 'MEMBER', status: 'PENDING' },
+        ],
+      },
+    },
+  });
+
   console.log('Seed completed successfully!');
-  console.log(`Created: 3 landlords, 5 tenants, 6 listings, visit slots, bookings, conversations, favorites, reviews`);
+  console.log(`Created: 3 landlords, 5 tenants, 6 listings, visit slots, bookings, conversations, favorites, reviews, 1 housemate group`);
 }
 
 main()

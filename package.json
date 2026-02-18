@@ -14,5 +14,14 @@
   },
   "keywords": ["roommate", "affitto", "stanze", "real-estate"],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "prisma",
+      "@prisma/client",
+      "@prisma/engines",
+      "esbuild",
+      "unrs-resolver"
+    ]
+  }
 }

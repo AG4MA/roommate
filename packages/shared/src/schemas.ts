@@ -150,6 +150,28 @@ export const sendMessageSchema = z.object({
   content: z.string().min(1).max(2000),
 });
 
+// ==================== Group Schemas ====================
+
+export const createGroupSchema = z.object({
+  name: z.string().min(2, 'Il nome del gruppo deve avere almeno 2 caratteri').max(50).optional(),
+  description: z.string().max(300).optional(),
+  maxMembers: z.number().min(2).max(8).default(4),
+});
+
+export const updateGroupSchema = z.object({
+  name: z.string().min(2).max(50).optional(),
+  description: z.string().max(300).optional(),
+  maxMembers: z.number().min(2).max(8).optional(),
+});
+
+export const inviteMemberSchema = z.object({
+  email: z.string().email('Email non valida'),
+});
+
+export const respondInvitationSchema = z.object({
+  action: z.enum(['accept', 'decline']),
+});
+
 // Type exports
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
@@ -159,3 +181,7 @@ export type SearchListingsInput = z.infer<typeof searchListingsSchema>;
 export type CreateBookingInput = z.infer<typeof createBookingSchema>;
 export type UpdateTenantProfileInput = z.infer<typeof updateTenantProfileSchema>;
 export type SendMessageInput = z.infer<typeof sendMessageSchema>;
+export type CreateGroupInput = z.infer<typeof createGroupSchema>;
+export type UpdateGroupInput = z.infer<typeof updateGroupSchema>;
+export type InviteMemberInput = z.infer<typeof inviteMemberSchema>;
+export type RespondInvitationInput = z.infer<typeof respondInvitationSchema>;

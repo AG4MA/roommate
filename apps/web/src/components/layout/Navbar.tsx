@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import {
   Menu, X, Home, LogIn, CalendarCheck, UserCircle,
-  Building2, LogOut, ChevronDown,
+  Building2, LogOut, ChevronDown, Users,
 } from 'lucide-react';
 
 export function Navbar() {
@@ -36,6 +36,12 @@ export function Navbar() {
             {isLandlord && (
               <Link href="/pubblica" className="text-gray-600 hover:text-primary-600 transition-colors">
                 Pubblica annuncio
+              </Link>
+            )}
+            {isLoggedIn && !isLandlord && (
+              <Link href="/gruppi" className="flex items-center gap-1.5 text-gray-600 hover:text-primary-600 transition-colors">
+                <Users className="w-4 h-4" />
+                I miei gruppi
               </Link>
             )}
             <Link href="/come-funziona" className="text-gray-600 hover:text-primary-600 transition-colors">
@@ -180,6 +186,15 @@ export function Navbar() {
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Pubblica annuncio
+                </Link>
+              )}
+              {isLoggedIn && !isLandlord && (
+                <Link
+                  href="/gruppi"
+                  className="text-gray-600 hover:text-primary-600 transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  I miei gruppi
                 </Link>
               )}
               <Link

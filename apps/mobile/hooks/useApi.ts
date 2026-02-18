@@ -25,6 +25,14 @@ import {
   deleteWish,
   getListingSlots,
   renewListing,
+  getMyGroups,
+  getGroup,
+  createGroup,
+  deleteGroup,
+  inviteGroupMember,
+  respondToGroupInvitation,
+  removeGroupMember,
+  getMyGroupInvitations,
   ListingsParams,
 } from '../lib/api';
 
@@ -40,6 +48,9 @@ export const queryKeys = {
   landlordProfile: ['profile', 'landlord'] as const,
   interests: ['interests'] as const,
   wishes: ['wishes'] as const,
+  groups: ['groups'] as const,
+  group: (id: string) => ['group', id] as const,
+  groupInvitations: ['group-invitations'] as const,
 };
 
 // ============ LISTINGS HOOKS ============
@@ -90,10 +101,11 @@ export function useMyInterests() {
 
 export function useExpressInterest() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: (listingId: string) => expressInterest(listingId),
-    onSuccess: (_, listingId) => {
+    mutationFn: ({ listingId, groupId }: { listingId: string; groupId?: string }) =>
+      expressInterest(listingId, groupId),
+    onSuccess: (_, { listingId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.interests });
       queryClient.invalidateQueries({ queryKey: queryKeys.listing(listingId) });
     },
@@ -245,11 +257,96 @@ export function useCreateWish() {
 
 export function useDeleteWish() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (wishId: string) => deleteWish(wishId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.wishes });
+    },
+  });
+}
+
+// ============ GROUPS HOOKS ============
+
+export function useMyGroups() {
+  return useQuery({
+    queryKey: queryKeys.groups,
+    queryFn: getMyGroups,
+  });
+}
+
+export function useGroup(id: string) {
+  return useQuery({
+    queryKey: queryKeys.group(id),
+    queryFn: () => getGroup(id),
+    enabled: !!id,
+  });
+}
+
+export function useMyGroupInvitations() {
+  return useQuery({
+    queryKey: queryKeys.groupInvitations,
+    queryFn: getMyGroupInvitations,
+  });
+}
+
+export function useCreateGroup() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createGroup,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.groups });
+    },
+  });
+}
+
+export function useDeleteGroup() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (groupId: string) => deleteGroup(groupId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.groups });
+    },
+  });
+}
+
+export function useInviteGroupMember() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ groupId, email }: { groupId: string; email: string }) =>
+      inviteGroupMember(groupId, email),
+    onSuccess: (_, { groupId }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.group(groupId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.groups });
+    },
+  });
+}
+
+export function useRespondToGroupInvitation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ groupId, membershipId, action }: { groupId: string; membershipId: string; action: 'accept' | 'decline' }) =>
+      respondToGroupInvitation(groupId, membershipId, action),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.groups });
+      queryClient.invalidateQueries({ queryKey: queryKeys.groupInvitations });
+    },
+  });
+}
+
+export function useRemoveGroupMember() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ groupId, membershipId }: { groupId: string; membershipId: string }) =>
+      removeGroupMember(groupId, membershipId),
+    onSuccess: (_, { groupId }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.group(groupId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.groups });
     },
   });
 }
