@@ -42,10 +42,10 @@ export interface ListingFormData {
     privateBath: boolean;
     balcony: boolean;
     aircon: boolean;
-    heating: boolean;
     washingMachine: boolean;
     dishwasher: boolean;
     parking: boolean;
+    bikeParking: boolean;
     garden: boolean;
     terrace: boolean;
   };
@@ -101,6 +101,7 @@ export interface ListingFormData {
   contactEmail?: string;
   contactPhone?: string;
   contactPreference?: 'email' | 'phone' | 'app';
+  maxInterested: number;
 }
 
 const INITIAL_DATA: ListingFormData = {
@@ -128,8 +129,8 @@ const INITIAL_DATA: ListingFormData = {
   longitude: 9.19,
   features: {
     wifi: false, furnished: false, privateBath: false, balcony: false,
-    aircon: false, heating: true, washingMachine: false, dishwasher: false,
-    parking: false, garden: false, terrace: false,
+    aircon: false, washingMachine: false, dishwasher: false,
+    parking: false, bikeParking: false, garden: false, terrace: false,
   },
   rules: {
     petsAllowed: false, smokingAllowed: false, couplesAllowed: false,
@@ -167,6 +168,7 @@ const INITIAL_DATA: ListingFormData = {
   images: [],
   videoUrl: '',
   roommates: [],
+  maxInterested: 3,
 };
 
 type PublisherType = 'private' | 'company' | 'sublet';

@@ -41,6 +41,7 @@ export async function POST(request: Request) {
         availableFrom: body.availableFrom ? new Date(body.availableFrom) : now,
         minStay: body.minStay || 6,
         maxStay: body.maxStay || null,
+        maxInterested: body.maxInterested ?? 3,
         videoUrl: body.videoUrl || null,
         status: body.publish ? 'ACTIVE' : 'DRAFT',
         publishedAt: body.publish ? now : null,

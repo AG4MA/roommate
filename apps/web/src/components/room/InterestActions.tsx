@@ -158,15 +158,15 @@ export function InterestActions({ listingId }: InterestActionsProps) {
       <div className="flex items-center gap-2 text-sm">
         <Users className="w-4 h-4 text-gray-400" />
         <div className="flex gap-1">
-          {[1, 2, 3].map((i) => (
+          {Array.from({ length: status?.maxActive ?? 3 }, (_, i) => (
             <div
               key={i}
-              className={`w-3 h-3 rounded-full ${i <= activeCount ? 'bg-primary-500' : 'bg-gray-200'}`}
+              className={`w-3 h-3 rounded-full ${i < activeCount ? 'bg-primary-500' : 'bg-gray-200'}`}
             />
           ))}
         </div>
         <span className="text-gray-500">
-          {activeCount}/3 interessati
+          {activeCount}/{status?.maxActive ?? 3} interessati
         </span>
         {queueFull && (
           <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">

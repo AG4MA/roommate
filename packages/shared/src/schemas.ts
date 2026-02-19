@@ -6,7 +6,6 @@ export const registerSchema = z.object({
   email: z.string().email('Email non valida'),
   password: z.string().min(8, 'Password deve essere almeno 8 caratteri'),
   name: z.string().min(2, 'Nome richiesto'),
-  userType: z.enum(['tenant', 'landlord']),
 });
 
 export const loginSchema = z.object({
@@ -61,6 +60,7 @@ export const createListingSchema = z.object({
   availableFrom: z.string(),
   minStay: z.number().default(6),
   maxStay: z.number().optional(),
+  maxInterested: z.number().min(1).max(20).default(3),
 });
 
 export const listingFeaturesSchema = z.object({
@@ -69,10 +69,10 @@ export const listingFeaturesSchema = z.object({
   privateBath: z.boolean().default(false),
   balcony: z.boolean().default(false),
   aircon: z.boolean().default(false),
-  heating: z.boolean().default(true),
   washingMachine: z.boolean().default(false),
   dishwasher: z.boolean().default(false),
   parking: z.boolean().default(false),
+  bikeParking: z.boolean().default(false),
   garden: z.boolean().default(false),
   terrace: z.boolean().default(false),
 });

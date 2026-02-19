@@ -16,7 +16,7 @@ export async function POST(request: Request) {
       return NextResponse.json(response, { status: 400 });
     }
 
-    const { email, password, name, userType } = result.data;
+    const { email, password, name } = result.data;
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -35,15 +35,12 @@ export async function POST(request: Request) {
     const bcrypt = await import('bcryptjs');
     const passwordHash = await bcrypt.hash(password, 12);
 
-    // Create user with the appropriate profile
+    // Create user (general account — no role, profiles created on demand)
     const user = await prisma.user.create({
       data: {
         email,
         passwordHash,
         name,
-        ...(userType === 'landlord'
-          ? { landlordProfile: { create: {} } }
-          : { tenantProfile: { create: {} } }),
       },
     });
 

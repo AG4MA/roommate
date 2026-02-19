@@ -69,6 +69,7 @@ interface AppointmentQueueProps {
 export function AppointmentQueue({ listingId, onStatusChange }: AppointmentQueueProps) {
   const [queue, setQueue] = useState<QueueMember[]>([]);
   const [listingStatus, setListingStatus] = useState<string>('');
+  const [maxActive, setMaxActive] = useState<number>(3);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -84,6 +85,7 @@ export function AppointmentQueue({ listingId, onStatusChange }: AppointmentQueue
       if (data.success) {
         setQueue(data.data.queue);
         setListingStatus(data.data.listingStatus);
+        setMaxActive(data.data.maxActive ?? 3);
       }
     } catch { /* ignore */ }
     setLoading(false);
@@ -221,7 +223,7 @@ export function AppointmentQueue({ listingId, onStatusChange }: AppointmentQueue
         <div className="flex items-center gap-2">
           <h3 className="font-semibold text-gray-800">Coda interessati</h3>
           <span className="text-xs bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full">
-            {queue.length}/3
+            {queue.length}/{maxActive}
           </span>
           {listingStatus === 'QUEUE_FULL' && (
             <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">

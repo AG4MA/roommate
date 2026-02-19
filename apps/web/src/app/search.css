@@ -3,6 +3,18 @@
    Imported in globals.css via @import or loaded by cerca/page.tsx
    ========================================================================== */
 
+/* ==========================================================================
+   Wizard card – 3D floating deck transitions
+   ========================================================================== */
+.wizard-card {
+  @apply relative bg-white rounded-2xl shadow-xl border border-gray-200/80 p-6 md:p-8;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+              opacity 0.25s ease;
+}
+
 /* ---------- Filter bar ---------- */
 .filter-bar {
   @apply flex items-center gap-2 overflow-x-auto py-1;
@@ -250,4 +262,245 @@
   font-size: 9px !important;
   padding: 2px 6px !important;
   border-radius: 4px 0 0 0 !important;
+}
+
+/* ==========================================================================
+   Swipe Card Stack – 3D floating deck
+   ========================================================================== */
+
+/* ── Wrapper ── */
+.swipe-stack-wrapper {
+  @apply flex flex-col items-center justify-center h-full w-full
+         select-none overflow-hidden;
+  padding: 0.5rem 1rem 0;
+}
+
+/* ── Counter ── */
+.swipe-stack-counter {
+  @apply text-sm mb-2 text-center;
+}
+
+/* ── Stack container ── */
+.swipe-stack-container {
+  @apply relative flex-1 w-full max-w-md flex items-center justify-center;
+  min-height: 0;
+}
+
+.swipe-stack-perspective {
+  perspective: 1200px;
+  perspective-origin: 50% 50%;
+  @apply relative w-full;
+  aspect-ratio: 3 / 4.2;
+  max-height: calc(100vh - 16rem);
+}
+
+/* ── Individual card ── */
+.swipe-card {
+  @apply absolute inset-0 rounded-3xl bg-white overflow-hidden;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.08),
+    0 1px 4px rgba(0, 0, 0, 0.04),
+    0 0 0 1px rgba(0, 0, 0, 0.03);
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.swipe-card--active {
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.06),
+    0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+/* ── Skeleton ── */
+.swipe-card--skeleton {
+  @apply animate-pulse;
+}
+.swipe-card__img-skeleton {
+  @apply w-full bg-gray-200;
+  height: 55%;
+}
+.swipe-card__body-skeleton {
+  @apply p-5;
+}
+.skeleton-line {
+  @apply bg-gray-200 rounded-md;
+}
+
+/* ── Swipe feedback overlays ── */
+.swipe-card__overlay {
+  @apply absolute inset-0 z-20 flex flex-col items-center justify-center
+         rounded-3xl pointer-events-none;
+  backdrop-filter: blur(2px);
+  transition: opacity 0.1s ease;
+}
+.swipe-card__overlay span {
+  @apply text-2xl font-extrabold tracking-wider mt-2;
+}
+
+.swipe-card__overlay--like {
+  background: rgba(16, 185, 129, 0.15);
+  border: 3px solid rgba(16, 185, 129, 0.5);
+  color: #059669;
+}
+.swipe-card__overlay--skip {
+  background: rgba(239, 68, 68, 0.15);
+  border: 3px solid rgba(239, 68, 68, 0.5);
+  color: #dc2626;
+}
+
+/* ── Image section ── */
+.swipe-card__image {
+  @apply relative w-full overflow-hidden;
+  height: 55%;
+}
+.swipe-card__img {
+  @apply w-full h-full object-cover;
+  pointer-events: none;
+}
+.swipe-card__img-placeholder {
+  @apply w-full h-full bg-gradient-to-br from-gray-100 to-gray-200
+         flex items-center justify-center;
+}
+
+/* Image dots */
+.swipe-card__dots {
+  @apply absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10;
+}
+.swipe-card__dot {
+  @apply w-2 h-2 rounded-full bg-white/50 transition-all duration-200;
+}
+.swipe-card__dot--active {
+  @apply bg-white w-5;
+  border-radius: 999px;
+}
+
+/* Image nav arrows */
+.swipe-card__img-nav {
+  @apply absolute top-1/2 -translate-y-1/2 z-10
+         w-8 h-8 flex items-center justify-center
+         bg-black/20 hover:bg-black/40 text-white
+         rounded-full backdrop-blur-sm transition-all;
+}
+.swipe-card__img-nav--left { @apply left-2; }
+.swipe-card__img-nav--right { @apply right-2; }
+
+/* Price badge */
+.swipe-card__price-badge {
+  @apply absolute bottom-3 right-3 z-10
+         bg-white/95 backdrop-blur-sm
+         px-3 py-1.5 rounded-xl
+         text-xl font-extrabold text-sky-600
+         shadow-lg;
+}
+.swipe-card__price-badge span {
+  @apply text-xs font-normal text-gray-400 ml-0.5;
+}
+
+/* ── Body ── */
+.swipe-card__body {
+  @apply px-5 py-4 flex flex-col gap-2;
+  height: 45%;
+}
+
+.swipe-card__title {
+  @apply text-lg font-bold text-gray-800 leading-tight truncate;
+}
+
+.swipe-card__location {
+  @apply text-sm text-gray-500 flex items-center gap-1 truncate;
+}
+
+/* Tags */
+.swipe-card__tags {
+  @apply flex flex-wrap gap-1.5 mt-1;
+}
+.swipe-card__tag {
+  @apply inline-flex items-center gap-1 px-2.5 py-1
+         bg-gray-100 text-gray-600
+         rounded-full text-xs font-medium;
+}
+.swipe-card__tag--accent {
+  @apply bg-blue-50 text-blue-600;
+}
+
+/* Footer */
+.swipe-card__footer {
+  @apply flex items-center gap-3 mt-auto pt-2 text-sm;
+}
+.swipe-card__roommates {
+  @apply flex items-center gap-1 text-gray-500;
+}
+.swipe-card__available {
+  @apply flex items-center gap-1 text-green-600 text-xs font-medium;
+}
+.swipe-card__detail-btn {
+  @apply ml-auto flex items-center gap-1
+         px-3 py-1.5 rounded-full
+         bg-sky-50 text-sky-600 text-xs font-semibold
+         hover:bg-sky-100 transition-colors;
+}
+
+/* ── Action buttons ── */
+.swipe-stack-actions {
+  @apply flex items-center justify-center gap-4 py-4;
+}
+
+.swipe-action-btn {
+  @apply flex items-center justify-center rounded-full
+         transition-all duration-200 active:scale-90
+         shadow-md hover:shadow-lg;
+}
+.swipe-action-btn:disabled {
+  @apply opacity-30 cursor-not-allowed shadow-none;
+}
+
+.swipe-action-btn--back {
+  @apply w-11 h-11 bg-white text-gray-400 border border-gray-200
+         hover:text-gray-600 hover:border-gray-300;
+}
+
+.swipe-action-btn--skip {
+  @apply w-14 h-14 bg-white text-red-400 border-2 border-red-200
+         hover:bg-red-50 hover:text-red-500 hover:border-red-300;
+}
+
+.swipe-action-btn--like {
+  @apply w-14 h-14 bg-gradient-to-br from-pink-500 to-rose-500
+         text-white border-0
+         hover:from-pink-600 hover:to-rose-600
+         shadow-pink-200;
+}
+
+.swipe-action-btn--detail {
+  @apply w-11 h-11 bg-white text-sky-500 border border-sky-200
+         hover:bg-sky-50 hover:text-sky-600 hover:border-sky-300;
+}
+
+/* ── Empty state ── */
+.swipe-stack-empty {
+  @apply flex flex-col items-center justify-center py-16;
+}
+.swipe-stack-empty__icon {
+  @apply w-20 h-20 rounded-full bg-amber-50 flex items-center justify-center;
+  animation: empty-bounce 2s ease-in-out infinite;
+}
+@keyframes empty-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+/* ── Floating animation for idle cards ── */
+@keyframes card-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.swipe-card--active:not(.swipe-card--dragging) {
+  animation: card-float 3s ease-in-out infinite;
+}
+.swipe-card--dragging {
+  animation: none !important;
 }

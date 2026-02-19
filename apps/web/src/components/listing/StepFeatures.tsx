@@ -19,10 +19,10 @@ const featureOptions = [
   { key: 'privateBath', label: 'Bagno privato', icon: Bath },
   { key: 'balcony', label: 'Balcone', icon: Sun },
   { key: 'aircon', label: 'Aria condizionata', icon: Wind },
-  { key: 'heating', label: 'Riscaldamento', icon: Flame },
   { key: 'washingMachine', label: 'Lavatrice', icon: WashingMachine },
   { key: 'dishwasher', label: 'Lavastoviglie', icon: UtensilsCrossed },
   { key: 'parking', label: 'Parcheggio', icon: Car },
+  { key: 'bikeParking', label: 'Parcheggio bici', icon: Bike },
   { key: 'garden', label: 'Giardino', icon: TreePine },
   { key: 'terrace', label: 'Terrazza', icon: Fence },
 ] as const;

@@ -4,7 +4,7 @@ import { prisma } from '@roommate/database';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
-const MAX_ACTIVE_INTERESTS = 3;
+const DEFAULT_MAX_INTERESTS = 3;
 
 // GET — landlord sees the queue for their listing (active interests with tenant profiles)
 export async function GET(
@@ -25,7 +25,7 @@ export async function GET(
     // Verify ownership
     const listing = await prisma.listing.findUnique({
       where: { id: listingId },
-      select: { landlordId: true, status: true, title: true },
+      select: { landlordId: true, status: true, title: true, maxInterested: true },
     });
 
     if (!listing || listing.landlordId !== session.user.id) {
@@ -34,6 +34,8 @@ export async function GET(
         { status: 404 }
       );
     }
+
+    const maxActive = listing.maxInterested ?? DEFAULT_MAX_INTERESTS;
 
     const interests = await prisma.interest.findMany({
       where: { listingId, status: 'ACTIVE' },
@@ -97,7 +99,7 @@ export async function GET(
       data: {
         listingTitle: listing.title,
         listingStatus: listing.status,
-        maxActive: MAX_ACTIVE_INTERESTS,
+        maxActive,
         queue,
       },
     });
@@ -184,7 +186,7 @@ export async function DELETE(
       where: { listingId, status: 'ACTIVE' },
     });
 
-    if (remainingActive < MAX_ACTIVE_INTERESTS) {
+    if (remainingActive < maxActive) {
       await prisma.listing.update({
         where: { id: listingId },
         data: { status: 'ACTIVE' },
@@ -227,7 +229,7 @@ export async function POST(
     // Verify ownership
     const listing = await prisma.listing.findUnique({
       where: { id: listingId },
-      select: { landlordId: true },
+      select: { landlordId: true, maxInterested: true },
     });
 
     if (!listing || listing.landlordId !== session.user.id) {
@@ -326,7 +328,7 @@ export async function POST(
             startTime,
             endTime,
             type: 'OPENDAY',
-            maxGuests: MAX_ACTIVE_INTERESTS,
+            maxGuests: listing.maxInterested ?? DEFAULT_MAX_INTERESTS,
           },
         });
 

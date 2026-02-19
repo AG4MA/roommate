@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import {
   Menu, X, Home, LogIn, CalendarCheck, UserCircle,
-  Building2, LogOut, ChevronDown, Users,
+  Building2, LogOut, ChevronDown, Users, Heart,
 } from 'lucide-react';
 
 export function Navbar() {
@@ -14,7 +14,6 @@ export function Navbar() {
   const { data: session, status } = useSession();
 
   const isLoggedIn = status === 'authenticated' && session?.user;
-  const isLandlord = session?.user?.role === 'landlord';
 
   return (
     <nav className="bg-white shadow-sm sticky top-0 z-50">
@@ -33,12 +32,10 @@ export function Navbar() {
             <Link href="/cerca" className="text-gray-600 hover:text-primary-600 transition-colors">
               Cerca stanze
             </Link>
-            {isLandlord && (
-              <Link href="/pubblica" className="text-gray-600 hover:text-primary-600 transition-colors">
-                Pubblica annuncio
-              </Link>
-            )}
-            {isLoggedIn && !isLandlord && (
+            <Link href="/pubblica" className="text-gray-600 hover:text-primary-600 transition-colors">
+              Pubblica annuncio
+            </Link>
+            {isLoggedIn && (
               <Link href="/gruppi" className="flex items-center gap-1.5 text-gray-600 hover:text-primary-600 transition-colors">
                 <Users className="w-4 h-4" />
                 I miei gruppi
@@ -54,11 +51,18 @@ export function Navbar() {
             {isLoggedIn ? (
               <>
                 <Link
-                  href="/prenotazioni"
+                  href="/mi-interessa"
                   className="flex items-center gap-2 text-gray-600 hover:text-primary-600 transition-colors"
+                  title="Mi interessa"
+                >
+                  <Heart className="w-5 h-5" />
+                </Link>
+                <Link
+                  href="/appuntamenti"
+                  className="flex items-center gap-2 text-gray-600 hover:text-primary-600 transition-colors"
+                  title="Appuntamenti"
                 >
                   <CalendarCheck className="w-5 h-5" />
-                  Prenotazioni
                 </Link>
 
                 {/* Profile Dropdown */}
@@ -94,13 +98,10 @@ export function Navbar() {
                         <div className="px-4 py-2 border-b border-gray-100">
                           <p className="text-sm font-medium text-gray-800">{session.user.name}</p>
                           <p className="text-xs text-gray-500">{session.user.email}</p>
-                          <span className="inline-block mt-1 px-2 py-0.5 bg-primary-50 text-primary-700 text-xs rounded-full font-medium">
-                            {isLandlord ? 'Proprietario' : 'Inquilino'}
-                          </span>
                         </div>
 
                         <Link
-                          href={isLandlord ? '/profilo/proprietario' : '/profilo/inquilino'}
+                          href="/profilo/inquilino"
                           className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                           onClick={() => setIsProfileOpen(false)}
                         >
@@ -108,16 +109,14 @@ export function Navbar() {
                           Il mio profilo
                         </Link>
 
-                        {isLandlord && (
-                          <Link
-                            href="/i-miei-annunci"
-                            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                            onClick={() => setIsProfileOpen(false)}
-                          >
-                            <Building2 className="w-4 h-4" />
-                            I miei annunci
-                          </Link>
-                        )}
+                        <Link
+                          href="/i-miei-annunci"
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          onClick={() => setIsProfileOpen(false)}
+                        >
+                          <Building2 className="w-4 h-4" />
+                          I miei annunci
+                        </Link>
 
                         <hr className="my-1" />
 
@@ -179,16 +178,14 @@ export function Navbar() {
               >
                 Cerca stanze
               </Link>
-              {isLandlord && (
-                <Link
-                  href="/pubblica"
-                  className="text-gray-600 hover:text-primary-600 transition-colors"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Pubblica annuncio
-                </Link>
-              )}
-              {isLoggedIn && !isLandlord && (
+              <Link
+                href="/pubblica"
+                className="text-gray-600 hover:text-primary-600 transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Pubblica annuncio
+              </Link>
+              {isLoggedIn && (
                 <Link
                   href="/gruppi"
                   className="text-gray-600 hover:text-primary-600 transition-colors"
@@ -209,28 +206,33 @@ export function Navbar() {
                 <>
                   <hr className="my-2" />
                   <Link
-                    href="/prenotazioni"
+                    href="/mi-interessa"
                     className="text-gray-600 hover:text-primary-600 transition-colors"
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    Prenotazioni
+                    Mi interessa
                   </Link>
                   <Link
-                    href={isLandlord ? '/profilo/proprietario' : '/profilo/inquilino'}
+                    href="/appuntamenti"
+                    className="text-gray-600 hover:text-primary-600 transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Appuntamenti
+                  </Link>
+                  <Link
+                    href="/profilo/inquilino"
                     className="text-gray-600 hover:text-primary-600 transition-colors"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Il mio profilo
                   </Link>
-                  {isLandlord && (
-                    <Link
-                      href="/i-miei-annunci"
-                      className="text-gray-600 hover:text-primary-600 transition-colors"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      I miei annunci
-                    </Link>
-                  )}
+                  <Link
+                    href="/i-miei-annunci"
+                    className="text-gray-600 hover:text-primary-600 transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    I miei annunci
+                  </Link>
                   <hr className="my-2" />
                   <button
                     onClick={() => {

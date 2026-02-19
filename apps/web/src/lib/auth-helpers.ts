@@ -14,10 +14,4 @@ export async function requireAuth() {
   return user;
 }
 
-export async function requireRole(role: 'landlord' | 'tenant') {
-  const user = await requireAuth();
-  if (user.role !== role) {
-    throw new Error(`Role '${role}' required`);
-  }
-  return user;
-}
+

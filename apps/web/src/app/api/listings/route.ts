@@ -131,10 +131,10 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id || session.user.role !== 'landlord') {
+    if (!session?.user?.id) {
       return NextResponse.json<ApiResponse<null>>(
-        { success: false, error: 'Solo i proprietari possono creare annunci' },
-        { status: 403 }
+        { success: false, error: 'Autenticazione richiesta' },
+        { status: 401 }
       );
     }
 
@@ -176,6 +176,7 @@ export async function POST(request: Request) {
         availableFrom: new Date(data.availableFrom),
         minStay: data.minStay,
         maxStay: data.maxStay,
+        maxInterested: body.maxInterested ?? 3,
         videoUrl: body.videoUrl || null,
         status: shouldPublish ? 'ACTIVE' : 'DRAFT',
         publishedAt: shouldPublish ? now : null,

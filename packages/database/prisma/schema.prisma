@@ -218,6 +218,9 @@ model Listing {
   // Current roommates
   roommates     Roommate[]
   
+  // Interest queue
+  maxInterested Int         @default(3) // max active interests before QUEUE_FULL
+
   // Bookings & visits
   availableSlots VisitSlot[]
   bookings       Booking[]
@@ -269,10 +272,10 @@ model ListingFeatures {
   privateBath    Boolean @default(false)
   balcony        Boolean @default(false)
   aircon         Boolean @default(false)
-  heating        Boolean @default(true)
   washingMachine Boolean @default(false)
   dishwasher     Boolean @default(false)
   parking        Boolean @default(false)
+  bikeParking    Boolean @default(false)
   garden         Boolean @default(false)
   terrace        Boolean @default(false)
   
@@ -328,7 +331,7 @@ model Roommate {
 enum ListingStatus {
   DRAFT
   ACTIVE
-  QUEUE_FULL  // 3 interested tenants — hidden from search
+  QUEUE_FULL  // maxInterested reached — hidden from search
   PAUSED
   RENTED
   ARCHIVED

@@ -32,10 +32,10 @@ const FEATURE_OPTIONS = [
   { key: 'privateBath', label: 'Bagno privato', icon: Bath },
   { key: 'balcony', label: 'Balcone', icon: Sun },
   { key: 'aircon', label: 'Aria condizionata', icon: Wind },
-  { key: 'heating', label: 'Riscaldamento', icon: Flame },
   { key: 'washingMachine', label: 'Lavatrice', icon: WashingMachine },
   { key: 'dishwasher', label: 'Lavastoviglie', icon: UtensilsCrossed },
   { key: 'parking', label: 'Parcheggio', icon: Car },
+  { key: 'bikeParking', label: 'Parcheggio bici', icon: Bike },
   { key: 'garden', label: 'Giardino', icon: TreePine },
   { key: 'terrace', label: 'Terrazza', icon: Fence },
 ] as const;
@@ -714,7 +714,43 @@ export function ListingWizard({ data, onChange, onSubmit, submitting, error, reg
       ),
     },
 
-    /* ---- 17: Foto (BLOCKING) ---- */
+    /* ---- 17: Numero massimo interessati ---- */
+    {
+      id: 'max-interessati', emoji: '👥', title: 'Quanti interessati vuoi gestire?',
+      subtitle: 'Quando raggiungi questo numero, l\'annuncio verrà nascosto dalla ricerca fino a quando non si libera un posto',
+      isValid: () => data.maxInterested >= 1,
+      content: (
+        <div className="space-y-4">
+          <div className="flex items-center justify-center gap-6">
+            <button
+              type="button"
+              onClick={() => onChange({ maxInterested: Math.max(1, data.maxInterested - 1) })}
+              className="w-12 h-12 rounded-full border-2 border-gray-300 text-gray-600 text-2xl font-bold hover:border-primary-400 hover:text-primary-600 transition-colors flex items-center justify-center"
+            >
+              −
+            </button>
+            <span className="text-5xl font-bold text-primary-600 tabular-nums w-16 text-center">{data.maxInterested}</span>
+            <button
+              type="button"
+              onClick={() => onChange({ maxInterested: Math.min(20, data.maxInterested + 1) })}
+              className="w-12 h-12 rounded-full border-2 border-gray-300 text-gray-600 text-2xl font-bold hover:border-primary-400 hover:text-primary-600 transition-colors flex items-center justify-center"
+            >
+              +
+            </button>
+          </div>
+          <p className="text-center text-sm text-gray-500">
+            {data.maxInterested === 1
+              ? 'Solo 1 persona potrà esprimere interesse alla volta'
+              : `Fino a ${data.maxInterested} persone potranno esprimere interesse contemporaneamente`}
+          </p>
+          <div className="bg-blue-50 rounded-xl p-3 text-xs text-blue-700">
+            💡 Un numero basso ti permette di concentrarti su pochi candidati alla volta. Un numero alto velocizza la ricerca ma richiede più gestione.
+          </div>
+        </div>
+      ),
+    },
+
+    /* ---- 18: Foto (BLOCKING) ---- */
     {
       id: 'foto', emoji: '📸', title: 'Foto della stanza',
       subtitle: 'Le foto fanno la differenza! Minimo 1 foto obbligatoria.',

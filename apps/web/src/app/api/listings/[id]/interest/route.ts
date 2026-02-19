@@ -4,7 +4,7 @@ import { prisma } from '@roommate/database';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
-const MAX_ACTIVE_INTERESTS = 3;
+const DEFAULT_MAX_INTERESTS = 3;
 
 interface InterestData {
   id: string;
@@ -78,7 +78,7 @@ export async function POST(
     // Check if listing exists and is active or queue_full (for waiting list)
     const listing = await prisma.listing.findUnique({
       where: { id: listingId },
-      select: { id: true, status: true, landlordId: true },
+      select: { id: true, status: true, landlordId: true, maxInterested: true },
     });
 
     if (!listing || !['ACTIVE', 'QUEUE_FULL'].includes(listing.status)) {
@@ -194,11 +194,13 @@ export async function POST(
       },
     });
 
+    const maxActive = listing.maxInterested ?? DEFAULT_MAX_INTERESTS;
+
     // Calculate engagement score
     const score = await calculateEngagementScore(session.user.id);
 
     // Determine position and status
-    const isWaiting = activeCount >= MAX_ACTIVE_INTERESTS;
+    const isWaiting = activeCount >= maxActive;
     const position = isWaiting
       ? activeCount + 1
       : activeCount + 1;
@@ -214,10 +216,10 @@ export async function POST(
       },
     });
 
-    // When queue reaches 3 active, set listing to QUEUE_FULL
+    // When queue reaches maxActive, set listing to QUEUE_FULL
     if (!isWaiting) {
       const newActiveCount = activeCount + 1;
-      if (newActiveCount >= MAX_ACTIVE_INTERESTS) {
+      if (newActiveCount >= maxActive) {
         await prisma.listing.update({
           where: { id: listingId },
           data: { status: 'QUEUE_FULL' },
@@ -234,7 +236,7 @@ export async function POST(
     };
 
     const message = isWaiting
-      ? `Sei in lista d'attesa (posizione ${position - MAX_ACTIVE_INTERESTS})`
+      ? `Sei in lista d'attesa (posizione ${position - maxActive})`
       : groupId
       ? 'Interesse del gruppo registrato con successo'
       : 'Interesse registrato con successo';
@@ -285,6 +287,13 @@ export async function DELETE(
       );
     }
 
+    // Fetch listing to get maxInterested
+    const listing = await prisma.listing.findUnique({
+      where: { id: listingId },
+      select: { maxInterested: true },
+    });
+    const maxActive = listing?.maxInterested ?? DEFAULT_MAX_INTERESTS;
+
     await prisma.interest.update({
       where: { id: interest.id },
       data: { status: 'WITHDRAWN', removedAt: new Date() },
@@ -313,12 +322,12 @@ export async function DELETE(
         });
       }
 
-      // Check if listing should go back to ACTIVE (fewer than 3 active interests)
+      // Check if listing should go back to ACTIVE
       const remainingActive = await prisma.interest.count({
         where: { listingId, status: 'ACTIVE' },
       });
 
-      if (remainingActive < MAX_ACTIVE_INTERESTS) {
+      if (remainingActive < maxActive) {
         await prisma.listing.update({
           where: { id: listingId },
           data: { status: 'ACTIVE' },
@@ -351,7 +360,7 @@ export async function GET(
     // Get listing with owner check
     const listing = await prisma.listing.findUnique({
       where: { id: listingId },
-      select: { landlordId: true },
+      select: { landlordId: true, maxInterested: true },
     });
 
     if (!listing) {
@@ -404,17 +413,19 @@ export async function GET(
     const activeCount = counts.find((c: { status: string; _count: number }) => c.status === 'ACTIVE')?._count ?? 0;
     const waitingCount = counts.find((c: { status: string; _count: number }) => c.status === 'WAITING')?._count ?? 0;
 
+    const maxActive = listing.maxInterested ?? DEFAULT_MAX_INTERESTS;
+
     // For withdrawn interests under cooldown, don't show them as "userInterest"
     const visibleUserInterest = userInterest && ['ACTIVE', 'WAITING'].includes(userInterest.status)
       ? userInterest
       : null;
 
     const data = {
-      canExpress: !visibleUserInterest && activeCount < MAX_ACTIVE_INTERESTS && !cooldownUntil,
-      queueFull: activeCount >= MAX_ACTIVE_INTERESTS,
+      canExpress: !visibleUserInterest && activeCount < maxActive && !cooldownUntil,
+      queueFull: activeCount >= maxActive,
       activeCount,
       waitingCount,
-      maxActive: MAX_ACTIVE_INTERESTS,
+      maxActive,
       userInterest: visibleUserInterest
         ? {
             status: visibleUserInterest.status,

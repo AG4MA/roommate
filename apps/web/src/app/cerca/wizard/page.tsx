@@ -159,6 +159,8 @@ export default function SearchWizardPage() {
   const [step, setStep] = useState(0);
   const [data, setData] = useState<WizardData>(INITIAL);
   const [mapsLoaded, setMapsLoaded] = useState(false);
+  const [direction, setDirection] = useState<'next' | 'prev'>('next');
+  const [animating, setAnimating] = useState(false);
   const stepTimer = useActionTimer();
 
   // Track time spent on each wizard step
@@ -230,12 +232,18 @@ export default function SearchWizardPage() {
   };
 
   const next = () => {
-    if (step < STEPS.length - 1) setStep(step + 1);
-    else handleFinish();
+    if (step < STEPS.length - 1) {
+      setDirection('next');
+      setAnimating(true);
+      setTimeout(() => { setStep(step + 1); setAnimating(false); }, 300);
+    } else handleFinish();
   };
   const prev = () => {
-    if (step > 0) setStep(step - 1);
-    else router.push('/');
+    if (step > 0) {
+      setDirection('prev');
+      setAnimating(true);
+      setTimeout(() => { setStep(step - 1); setAnimating(false); }, 300);
+    } else router.push('/');
   };
 
   const renderStep = () => {
@@ -257,44 +265,65 @@ export default function SearchWizardPage() {
 
   const progress = ((step + 1) / STEPS.length) * 100;
 
-  // Divider label
-  const sectionLabel = step <= 1 ? 'Parlaci di te' : 'Cosa cerchi';
-
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col">
       {/* Progress bar */}
-      <div className="w-full bg-gray-200 h-1.5">
+      <div className="w-full bg-gray-200 h-1">
         <div
-          className="bg-primary-600 h-1.5 transition-all duration-500 ease-out"
+          className="bg-primary-600 h-1 transition-all duration-500 ease-out"
           style={{ width: `${progress}%` }}
         />
       </div>
 
-      {/* Section + step indicator */}
-      <div className="text-center pt-5 pb-1">
-        <span className="text-xs font-semibold uppercase tracking-wider text-primary-600">
-          {sectionLabel}
-        </span>
-        <div className="text-sm text-gray-400 mt-0.5">
-          {step + 1} / {STEPS.length}
-        </div>
-      </div>
+      {/* Card deck content */}
+      <div className="flex-1 flex items-center justify-center px-4 py-6">
+        <div className="w-full max-w-xl" style={{ perspective: '1000px' }}>
+          <div className="relative">
+            {/* Shadow card 3 (deepest) */}
+            {step < STEPS.length - 3 && (
+              <div className="absolute inset-x-6 top-4 h-20 rounded-2xl bg-white/25 border border-gray-200/25 shadow-sm" />
+            )}
+            {/* Shadow card 2 */}
+            {step < STEPS.length - 2 && (
+              <div className="absolute inset-x-4 top-2.5 h-20 rounded-2xl bg-white/40 border border-gray-200/40 shadow-sm" />
+            )}
+            {/* Shadow card 1 (closest behind) */}
+            {step < STEPS.length - 1 && (
+              <div className="absolute inset-x-2 top-1 h-20 rounded-2xl bg-white/60 border border-gray-200/60 shadow-md" />
+            )}
+            {/* Active card */}
+            <div
+              className="wizard-card"
+              style={{
+                transform: animating
+                  ? direction === 'next'
+                    ? 'translate3d(-80px, 0, -40px) rotateY(-8deg) scale(0.92)'
+                    : 'translate3d(80px, 0, -40px) rotateY(8deg) scale(0.92)'
+                  : 'translate3d(0, 0, 0) rotateY(0deg) scale(1)',
+                opacity: animating ? 0 : 1,
+              }}
+            >
+              {/* Back button + step counter INSIDE the card */}
+              <div className="flex items-center justify-between mb-4">
+                <button
+                  onClick={prev}
+                  className="flex items-center gap-1 text-gray-400 hover:text-gray-800 transition-colors text-sm"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span className="font-medium">{step === 0 ? 'Home' : 'Indietro'}</span>
+                </button>
+              </div>
 
-      {/* Content */}
-      <div className="flex-1 flex items-center justify-center px-4 pb-24">
-        <div className="w-full max-w-xl">{renderStep()}</div>
-      </div>
+              {renderStep()}
 
-      {/* Bottom nav — only back button */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t px-4 py-4 z-50">
-        <div className="max-w-xl mx-auto">
-          <button
-            onClick={prev}
-            className="flex items-center gap-2 text-gray-500 hover:text-gray-800 transition-colors font-medium"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            {step === 0 ? 'Home' : 'Indietro'}
-          </button>
+              {/* Counter bottom-right */}
+              <div className="mt-4 flex justify-end">
+                <span className="text-xs text-gray-400 tabular-nums">
+                  {step + 1}/{STEPS.length}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -314,9 +343,9 @@ interface StepProps {
 // ---------- Step 0: Occupation (Chi sei) — auto-advance ----------
 function StepOccupation({ data, update, onNext }: StepProps) {
   const OPTIONS = [
-    { value: 'student', label: 'Studente', desc: 'Frequento l\'università', icon: '🎓' },
-    { value: 'worker', label: 'Lavoratore', desc: 'Lavoro full-time o part-time', icon: '💼' },
-    { value: 'freelancer', label: 'Freelancer', desc: 'Lavoro in proprio', icon: '💻' },
+    { value: 'student', label: 'Studente', icon: '🎓' },
+    { value: 'worker', label: 'Lavoratore', icon: '💼' },
+    { value: 'both', label: 'Entrambi', icon: '🎓💼' },
   ];
 
   return (
@@ -325,8 +354,7 @@ function StepOccupation({ data, update, onNext }: StepProps) {
         <div className="inline-flex items-center justify-center w-14 h-14 bg-primary-50 rounded-2xl mb-4">
           <Briefcase className="w-7 h-7 text-primary-600" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-800">Tu cosa fai?</h2>
-        <p className="text-gray-500 mt-1">Ci aiuterà a trovarti le stanze più adatte</p>
+        <h2 className="text-2xl font-bold text-gray-800">Tu sei?</h2>
       </div>
 
       <div className="grid grid-cols-1 gap-3">
@@ -344,10 +372,7 @@ function StepOccupation({ data, update, onNext }: StepProps) {
             }`}
           >
             <span className="text-3xl">{opt.icon}</span>
-            <div>
-              <div className="font-semibold text-gray-800">{opt.label}</div>
-              <div className="text-sm text-gray-500">{opt.desc}</div>
-            </div>
+            <div className="font-semibold text-gray-800">{opt.label}</div>
           </button>
         ))}
       </div>
@@ -361,7 +386,6 @@ function StepAgeGender({ data, update, onNext }: StepProps) {
   const GENDERS = [
     { value: 'male', label: 'Uomo', icon: '👨' },
     { value: 'female', label: 'Donna', icon: '👩' },
-    { value: 'other', label: 'Altro', icon: '🧑' },
   ];
 
   const AGE_RANGES = [
@@ -385,8 +409,8 @@ function StepAgeGender({ data, update, onNext }: StepProps) {
         <div className="inline-flex items-center justify-center w-14 h-14 bg-primary-50 rounded-2xl mb-4">
           <Heart className="w-7 h-7 text-primary-600" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-800">Dicci qualcosa di te</h2>
-        <p className="text-gray-500 mt-1">Opzionale, ma migliora i suggerimenti</p>
+        <h2 className="text-2xl font-bold text-gray-800">Età e genere</h2>
+        <p className="text-gray-500 mt-1">Opzionale, migliora i suggerimenti</p>
       </div>
 
       {/* Gender */}
@@ -807,19 +831,14 @@ function StepPlaces({ data, update, onNext, mapsLoaded }: StepProps) {
     handlePlaceSelect,
   );
 
-  const addPlace = (isMandatory: boolean) => {
+  const addPlace = () => {
     if (!label.trim() || !address.trim()) return;
     update({
       wantsDistances: true,
-      places: [...data.places, { label: label.trim(), address: address.trim(), mandatory: isMandatory }],
+      places: [...data.places, { label: label.trim(), address: address.trim(), mandatory: true }],
     });
     setLabel('');
     setAddress('');
-  };
-
-  const toggleMandatory = (idx: number) => {
-    const next = data.places.map((p, i) => (i === idx ? { ...p, mandatory: !p.mandatory } : p));
-    update({ places: next });
   };
 
   const removePlace = (idx: number) => {
@@ -925,7 +944,7 @@ function StepPlaces({ data, update, onNext, mapsLoaded }: StepProps) {
         </div>
         <h2 className="text-2xl font-bold text-gray-800">I tuoi punti d'interesse</h2>
         <p className="text-gray-500 mt-1 text-sm">
-          Aggiungi dove vai di solito — per ogni luogo puoi dire se la distanza è <strong>fondamentale</strong> o solo <strong>informativa</strong>
+          Aggiungi dove vai di solito per calcolare le distanze
         </p>
       </div>
 
@@ -963,48 +982,25 @@ function StepPlaces({ data, update, onNext, mapsLoaded }: StepProps) {
           placeholder={mapsLoaded ? 'Cerca indirizzo o nome...' : 'Indirizzo o nome del luogo'}
           value={address}
           onChange={(e) => setAddress(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') addPlace(true); }}
+          onKeyDown={(e) => { if (e.key === 'Enter') addPlace(); }}
           className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary-500 focus:outline-none text-gray-800 text-sm"
         />
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            onClick={() => addPlace(true)}
-            disabled={!label.trim() || !address.trim()}
-            className="py-3 rounded-xl bg-primary-600 text-white text-sm font-medium disabled:bg-gray-200 disabled:text-gray-400 transition-colors"
-          >
-            🎯 Fondamentale
-          </button>
-          <button
-            onClick={() => addPlace(false)}
-            disabled={!label.trim() || !address.trim()}
-            className="py-3 rounded-xl bg-gray-100 text-gray-700 text-sm font-medium disabled:bg-gray-100 disabled:text-gray-300 border border-gray-200 transition-colors hover:bg-gray-200"
-          >
-            ℹ️ Solo informativo
-          </button>
-        </div>
+        <button
+          onClick={addPlace}
+          disabled={!label.trim() || !address.trim()}
+          className="w-full py-3 rounded-xl bg-primary-600 text-white text-sm font-medium disabled:bg-gray-200 disabled:text-gray-400 transition-colors"
+        >
+          + Aggiungi
+        </button>
       </div>
 
       {/* Added places */}
       {data.places.length > 0 && (
         <div className="space-y-2">
           {data.places.map((p, i) => (
-            <div key={i} className={`flex items-center justify-between rounded-xl px-4 py-3 border ${
-              p.mandatory ? 'border-primary-200 bg-primary-50/50' : 'border-gray-200 bg-white'
-            }`}>
+            <div key={i} className="flex items-center justify-between rounded-xl px-4 py-3 border border-gray-200 bg-white">
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-800 text-sm">{p.label}</span>
-                  <button
-                    onClick={() => toggleMandatory(i)}
-                    className={`text-xs px-2 py-0.5 rounded-full font-medium transition-colors ${
-                      p.mandatory
-                        ? 'bg-primary-100 text-primary-700 hover:bg-primary-200'
-                        : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                    }`}
-                  >
-                    {p.mandatory ? '🎯 Fondamentale' : 'ℹ️ Informativo'}
-                  </button>
-                </div>
+                <span className="font-medium text-gray-800 text-sm">{p.label}</span>
                 <div className="text-xs text-gray-500 truncate">{p.address}</div>
               </div>
               <button onClick={() => removePlace(i)} className="ml-2 text-gray-400 hover:text-red-500 text-xl leading-none">×</button>
@@ -1021,7 +1017,7 @@ function StepPlaces({ data, update, onNext, mapsLoaded }: StepProps) {
       </button>
 
       <p className="text-xs text-gray-400 text-center">
-        <strong>Fondamentale</strong> = la distanza conta per il match &nbsp;·&nbsp; <strong>Informativo</strong> = solo per tua info
+        Le distanze verranno calcolate da ogni stanza ai tuoi luoghi
       </p>
     </div>
   );
@@ -1030,6 +1026,21 @@ function StepPlaces({ data, update, onNext, mapsLoaded }: StepProps) {
 // ---------- Step 9: Duration (last) ----------
 function StepDuration({ data, update, onNext }: StepProps) {
   const MONTH_OPTIONS = ['3', '6', '9', '12', '18', '24'];
+  const autoFinishTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-navigate to map after selection:
+  // - Both fields filled → fast (400ms)
+  // - Only one field filled → slower (1.2s) to let user optionally pick the other
+  const scheduleFinish = useCallback((nextData: Partial<WizardData>) => {
+    if (autoFinishTimer.current) clearTimeout(autoFinishTimer.current);
+    const mergedMonths = nextData.months ?? data.months;
+    const mergedMoveIn = nextData.moveIn ?? data.moveIn;
+    if (mergedMonths && mergedMoveIn) {
+      autoFinishTimer.current = setTimeout(() => onNext?.(), 400);
+    } else if (mergedMonths || mergedMoveIn) {
+      autoFinishTimer.current = setTimeout(() => onNext?.(), 1200);
+    }
+  }, [data.months, data.moveIn, onNext]);
 
   const getMonthOptions = () => {
     const options: { value: string; label: string }[] = [];
@@ -1059,7 +1070,11 @@ function StepDuration({ data, update, onNext }: StepProps) {
           {MONTH_OPTIONS.map((m) => (
             <button
               key={m}
-              onClick={() => update({ months: data.months === m ? '' : m })}
+              onClick={() => {
+                const val = data.months === m ? '' : m;
+                update({ months: val });
+                scheduleFinish({ months: val });
+              }}
               className={`py-3 rounded-xl border-2 font-medium transition-all ${
                 data.months === m
                   ? 'border-primary-500 bg-primary-50 text-primary-700'
@@ -1078,7 +1093,11 @@ function StepDuration({ data, update, onNext }: StepProps) {
           {getMonthOptions().map((opt) => (
             <button
               key={opt.value}
-              onClick={() => update({ moveIn: data.moveIn === opt.value ? '' : opt.value })}
+              onClick={() => {
+                const val = data.moveIn === opt.value ? '' : opt.value;
+                update({ moveIn: val });
+                scheduleFinish({ moveIn: val });
+              }}
               className={`py-3 px-4 rounded-xl border-2 text-sm font-medium transition-all ${
                 data.moveIn === opt.value
                   ? 'border-primary-500 bg-primary-50 text-primary-700'
@@ -1093,13 +1112,10 @@ function StepDuration({ data, update, onNext }: StepProps) {
 
       <button
         onClick={() => onNext?.()}
-        className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all"
+        className="w-full text-center text-sm text-primary-600 hover:text-primary-700 font-medium py-2 transition-colors"
       >
-        <Navigation className="w-5 h-5" />
-        Cerca sulla mappa
+        Salta e vai alla mappa →
       </button>
-
-      <p className="text-xs text-gray-400 text-center">Entrambi opzionali</p>
     </div>
   );
 }

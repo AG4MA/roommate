@@ -23,10 +23,6 @@ export const authOptions: NextAuthOptions = {
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
-          include: {
-            landlordProfile: true,
-            tenantProfile: true,
-          },
         });
 
         if (!user || !user.passwordHash) {
@@ -38,15 +34,11 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        // Determine role based on which profile exists
-        const role = user.landlordProfile ? 'landlord' : 'tenant';
-
         return {
           id: user.id,
           name: user.name,
           email: user.email,
           avatar: user.avatar,
-          role,
         };
       },
     }),
@@ -55,14 +47,12 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role = user.role;
         token.avatar = user.avatar;
       }
       return token;
     },
     async session({ session, token }) {
       session.user.id = token.id;
-      session.user.role = token.role;
       session.user.avatar = token.avatar;
       return session;
     },

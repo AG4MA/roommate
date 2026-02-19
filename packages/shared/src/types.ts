@@ -121,10 +121,10 @@ export interface ListingFeatures {
   privateBath: boolean;
   balcony: boolean;
   aircon: boolean;
-  heating: boolean;
   washingMachine: boolean;
   dishwasher: boolean;
   parking: boolean;
+  bikeParking: boolean;
   garden: boolean;
   terrace: boolean;
 }
