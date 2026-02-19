@@ -2,12 +2,13 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { SlidersHorizontal, X, RefreshCcw, ChevronDown } from 'lucide-react';
+import { MapPin, Euro, Home, Sofa, Bath, Dog, Cigarette, Users, X, RotateCcw } from 'lucide-react';
 import { trackAction } from '@/hooks/useAnalytics';
 
 /* ------------------------------------------------------------------ */
-/* Filter pills bar – collapsed by default, horizontal scrollable     */
-/* Auto-search on every change (no "Cerca" button)                     */
+/* Inline filter pills  single horizontal scrollable row.            */
+/* Click a pill to open a mini-dropdown. Auto-search on every change. */
+/* CSS classes live in search.css                                      */
 /* ------------------------------------------------------------------ */
 
 interface FilterState {
@@ -25,8 +26,9 @@ interface FilterState {
 export function SearchFilters({ onFiltersChange }: { onFiltersChange?: (params: URLSearchParams) => void }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [open, setOpen] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const barRef = useRef<HTMLDivElement>(null);
 
   const [filters, setFilters] = useState<FilterState>({
     location: searchParams.get('city') || '',
@@ -39,6 +41,17 @@ export function SearchFilters({ onFiltersChange }: { onFiltersChange?: (params: 
     smokingAllowed: searchParams.get('smokingAllowed') === 'true',
     gender: searchParams.get('gender') || 'all',
   });
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (barRef.current && !barRef.current.contains(e.target as Node)) {
+        setOpenDropdown(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   // Build URLSearchParams from current filters
   const buildParams = useCallback((f: FilterState): URLSearchParams => {
@@ -55,7 +68,7 @@ export function SearchFilters({ onFiltersChange }: { onFiltersChange?: (params: 
     return params;
   }, []);
 
-  // Auto-search with debounce on any filter change
+  // Auto-search with debounce
   const applyFilters = useCallback(
     (newFilters: FilterState) => {
       setFilters(newFilters);
@@ -70,44 +83,12 @@ export function SearchFilters({ onFiltersChange }: { onFiltersChange?: (params: 
     [buildParams, router, onFiltersChange],
   );
 
-  // Cleanup
   useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
 
-  // Count of active filters
-  const activeCount = [
-    filters.location,
-    filters.priceMin,
-    filters.priceMax,
-    filters.roomType !== 'all' ? filters.roomType : '',
-    filters.furnished ? 'f' : '',
-    filters.privateBath ? 'p' : '',
-    filters.petsAllowed ? 'p' : '',
-    filters.smokingAllowed ? 's' : '',
-    filters.gender !== 'all' ? filters.gender : '',
-  ].filter(Boolean).length;
+  const toggle = (key: string) => setOpenDropdown(openDropdown === key ? null : key);
 
-  // Active pills for summary bar
-  const activePills: { label: string; key: string }[] = [];
-  if (filters.location) activePills.push({ label: `📍 ${filters.location}`, key: 'location' });
-  if (filters.priceMin || filters.priceMax) {
-    const min = filters.priceMin ? `€${filters.priceMin}` : '€0';
-    const max = filters.priceMax ? `€${filters.priceMax}` : '∞';
-    activePills.push({ label: `${min} – ${max}`, key: 'price' });
-  }
-  if (filters.roomType !== 'all') {
-    const roomLabels: Record<string, string> = { SINGLE: 'Singola', DOUBLE: 'Doppia', STUDIO: 'Monolocale' };
-    activePills.push({ label: roomLabels[filters.roomType] || filters.roomType, key: 'roomType' });
-  }
-  if (filters.furnished) activePills.push({ label: 'Arredata', key: 'furnished' });
-  if (filters.privateBath) activePills.push({ label: 'Bagno privato', key: 'privateBath' });
-  if (filters.petsAllowed) activePills.push({ label: 'Animali', key: 'petsAllowed' });
-  if (filters.smokingAllowed) activePills.push({ label: 'Fumatori', key: 'smokingAllowed' });
-  if (filters.gender !== 'all') {
-    const genderLabels: Record<string, string> = { male: 'Solo uomini', female: 'Solo donne' };
-    activePills.push({ label: genderLabels[filters.gender] || filters.gender, key: 'gender' });
-  }
-
-  const removePill = (key: string) => {
+  const clearFilter = (key: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     const next = { ...filters };
     switch (key) {
       case 'location': next.location = ''; break;
@@ -122,151 +103,174 @@ export function SearchFilters({ onFiltersChange }: { onFiltersChange?: (params: 
     applyFilters(next);
   };
 
-  return (
-    <div className="max-w-7xl mx-auto">
-      {/* Top control bar: Filtri button + scrollable active pills */}
-      <div className="flex items-center gap-2">
-        {/* Filtri toggle */}
-        <button
-          onClick={() => setOpen(!open)}
-          className={`shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border text-sm font-medium transition-colors ${
-            open
-              ? 'border-primary-500 bg-primary-50 text-primary-600'
-              : 'border-gray-200 bg-white hover:border-primary-300 text-gray-700'
-          }`}
-        >
-          <SlidersHorizontal className="w-4 h-4" />
-          Filtri
-          {activeCount > 0 && (
-            <span className="ml-1 w-5 h-5 rounded-full bg-primary-600 text-white text-xs flex items-center justify-center">
-              {activeCount}
-            </span>
-          )}
-          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''}`} />
-        </button>
+  const hasAnyFilter =
+    filters.location || filters.priceMin || filters.priceMax ||
+    filters.roomType !== 'all' || filters.furnished || filters.privateBath ||
+    filters.petsAllowed || filters.smokingAllowed || filters.gender !== 'all';
 
-        {/* Scrollable active pills */}
-        {activePills.length > 0 && (
-          <div className="flex-1 overflow-x-auto no-scrollbar">
-            <div className="flex items-center gap-1.5 whitespace-nowrap py-0.5">
-              {activePills.map((pill) => (
-                <span
-                  key={pill.key}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-primary-50 text-primary-700 text-xs font-medium border border-primary-200"
-                >
-                  {pill.label}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); removePill(pill.key); }}
-                    className="hover:bg-primary-200 rounded-full p-0.5 transition-colors"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              ))}
+  const resetAll = () => {
+    const empty: FilterState = {
+      location: '', priceMin: '', priceMax: '', roomType: 'all',
+      furnished: false, privateBath: false, petsAllowed: false, smokingAllowed: false, gender: 'all',
+    };
+    applyFilters(empty);
+    setOpenDropdown(null);
+  };
+
+  /* ---- Pill helpers ---- */
+
+  const pillClass = (active: boolean) =>
+    `filter-pill ${active ? 'filter-pill--active' : ''}`;
+
+  const roomLabels: Record<string, string> = { SINGLE: 'Singola', DOUBLE: 'Doppia', STUDIO: 'Monolocale', all: 'Tutte' };
+  const genderLabels: Record<string, string> = { male: 'Solo uomini', female: 'Solo donne', all: 'Tutti' };
+
+  return (
+    <div ref={barRef} className="filter-bar">
+
+      {/* ---- City ---- */}
+      <div className="relative shrink-0">
+        <button className={pillClass(!!filters.location)} onClick={() => toggle('location')}>
+          <MapPin className="w-4 h-4" />
+          {filters.location || 'Città'}
+          {filters.location && (
+            <span className="filter-pill__clear" onClick={(e) => clearFilter('location', e)}><X className="w-3 h-3" /></span>
+          )}
+        </button>
+        {openDropdown === 'location' && (
+          <div className="filter-dropdown">
+            <span className="filter-dropdown__label">Città</span>
+            <input
+              autoFocus
+              type="text"
+              placeholder="Es. Milano, Roma..."
+              value={filters.location}
+              onChange={(e) => applyFilters({ ...filters, location: e.target.value })}
+              className="filter-dropdown__input"
+            />
+          </div>
+        )}
+      </div>
+
+      {/* ---- Price ---- */}
+      <div className="relative shrink-0">
+        <button className={pillClass(!!(filters.priceMin || filters.priceMax))} onClick={() => toggle('price')}>
+          <Euro className="w-4 h-4" />
+          {filters.priceMin || filters.priceMax
+            ? `€${filters.priceMin || '0'}  €${filters.priceMax || ''}`
+            : 'Budget'}
+          {(filters.priceMin || filters.priceMax) && (
+            <span className="filter-pill__clear" onClick={(e) => clearFilter('price', e)}><X className="w-3 h-3" /></span>
+          )}
+        </button>
+        {openDropdown === 'price' && (
+          <div className="filter-dropdown" style={{ minWidth: 240 }}>
+            <span className="filter-dropdown__label">Budget €/mese</span>
+            <div className="filter-dropdown__row">
+              <input
+                type="number"
+                placeholder="Min"
+                value={filters.priceMin}
+                onChange={(e) => applyFilters({ ...filters, priceMin: e.target.value })}
+                className="filter-dropdown__input"
+              />
+              <span className="text-gray-400"></span>
+              <input
+                type="number"
+                placeholder="Max"
+                value={filters.priceMax}
+                onChange={(e) => applyFilters({ ...filters, priceMax: e.target.value })}
+                className="filter-dropdown__input"
+              />
             </div>
           </div>
         )}
-
-        {/* Ripeti ricerca */}
-        <button
-          onClick={() => router.push('/cerca/wizard')}
-          className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full border border-gray-200 bg-white hover:border-primary-300 hover:bg-primary-50 text-gray-600 hover:text-primary-600 transition-colors text-sm font-medium"
-          title="Ripeti il wizard di ricerca"
-        >
-          <RefreshCcw className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Ripeti ricerca</span>
-        </button>
       </div>
 
-      {/* Expanded filters panel */}
-      {open && (
-        <div className="mt-3 p-4 bg-white rounded-2xl shadow-lg border border-gray-100">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* City */}
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Città</label>
-              <input
-                type="text"
-                placeholder="Es. Milano, Roma..."
-                value={filters.location}
-                onChange={(e) => applyFilters({ ...filters, location: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-              />
-            </div>
-
-            {/* Price range */}
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Budget €/mese</label>
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  placeholder="Min"
-                  value={filters.priceMin}
-                  onChange={(e) => applyFilters({ ...filters, priceMin: e.target.value })}
-                  className="w-1/2 px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-                />
-                <input
-                  type="number"
-                  placeholder="Max"
-                  value={filters.priceMax}
-                  onChange={(e) => applyFilters({ ...filters, priceMax: e.target.value })}
-                  className="w-1/2 px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-                />
-              </div>
-            </div>
-
-            {/* Room type */}
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Tipo stanza</label>
-              <select
-                value={filters.roomType}
-                onChange={(e) => applyFilters({ ...filters, roomType: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-              >
-                <option value="all">Tutte</option>
-                <option value="SINGLE">Singola</option>
-                <option value="DOUBLE">Doppia</option>
-                <option value="STUDIO">Monolocale</option>
-              </select>
-            </div>
-
-            {/* Gender preference */}
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Preferenza genere</label>
-              <select
-                value={filters.gender}
-                onChange={(e) => applyFilters({ ...filters, gender: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-              >
-                <option value="all">Indifferente</option>
-                <option value="male">Solo uomini</option>
-                <option value="female">Solo donne</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Toggle pills row */}
-          <div className="flex flex-wrap gap-2 mt-4">
-            {[
-              { key: 'furnished' as const, label: '🛋️ Arredata' },
-              { key: 'privateBath' as const, label: '🚿 Bagno privato' },
-              { key: 'petsAllowed' as const, label: '🐾 Animali ammessi' },
-              { key: 'smokingAllowed' as const, label: '🚬 Fumatori ammessi' },
-            ].map((opt) => (
+      {/* ---- Room type ---- */}
+      <div className="relative shrink-0">
+        <button className={pillClass(filters.roomType !== 'all')} onClick={() => toggle('roomType')}>
+          <Home className="w-4 h-4" />
+          {roomLabels[filters.roomType]}
+          {filters.roomType !== 'all' && (
+            <span className="filter-pill__clear" onClick={(e) => clearFilter('roomType', e)}><X className="w-3 h-3" /></span>
+          )}
+        </button>
+        {openDropdown === 'roomType' && (
+          <div className="filter-dropdown">
+            <span className="filter-dropdown__label">Tipo stanza</span>
+            {['all', 'SINGLE', 'DOUBLE', 'STUDIO'].map((val) => (
               <button
-                key={opt.key}
-                onClick={() => applyFilters({ ...filters, [opt.key]: !filters[opt.key] })}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                  filters[opt.key]
-                    ? 'bg-primary-600 text-white border-primary-600'
-                    : 'bg-white text-gray-600 border-gray-200 hover:border-primary-300'
-                }`}
+                key={val}
+                onClick={() => { applyFilters({ ...filters, roomType: val }); setOpenDropdown(null); }}
+                className={`filter-dropdown__option ${filters.roomType === val ? 'filter-dropdown__option--active' : ''}`}
               >
-                {opt.label}
+                {roomLabels[val]}
               </button>
             ))}
           </div>
-        </div>
+        )}
+      </div>
+
+      {/* ---- Gender ---- */}
+      <div className="relative shrink-0">
+        <button className={pillClass(filters.gender !== 'all')} onClick={() => toggle('gender')}>
+          <Users className="w-4 h-4" />
+          {genderLabels[filters.gender]}
+          {filters.gender !== 'all' && (
+            <span className="filter-pill__clear" onClick={(e) => clearFilter('gender', e)}><X className="w-3 h-3" /></span>
+          )}
+        </button>
+        {openDropdown === 'gender' && (
+          <div className="filter-dropdown">
+            <span className="filter-dropdown__label">Preferenza genere</span>
+            {['all', 'male', 'female'].map((val) => (
+              <button
+                key={val}
+                onClick={() => { applyFilters({ ...filters, gender: val }); setOpenDropdown(null); }}
+                className={`filter-dropdown__option ${filters.gender === val ? 'filter-dropdown__option--active' : ''}`}
+              >
+                {genderLabels[val]}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ---- Toggle pills (one-click on/off) ---- */}
+      <button
+        className={pillClass(filters.furnished)}
+        onClick={() => applyFilters({ ...filters, furnished: !filters.furnished })}
+      >
+        <Sofa className="w-4 h-4" />Arredata
+      </button>
+
+      <button
+        className={pillClass(filters.privateBath)}
+        onClick={() => applyFilters({ ...filters, privateBath: !filters.privateBath })}
+      >
+        <Bath className="w-4 h-4" />Bagno privato
+      </button>
+
+      <button
+        className={pillClass(filters.petsAllowed)}
+        onClick={() => applyFilters({ ...filters, petsAllowed: !filters.petsAllowed })}
+      >
+        <Dog className="w-4 h-4" />Animali
+      </button>
+
+      <button
+        className={pillClass(filters.smokingAllowed)}
+        onClick={() => applyFilters({ ...filters, smokingAllowed: !filters.smokingAllowed })}
+      >
+        <Cigarette className="w-4 h-4" />Fumatori
+      </button>
+
+      {/* ---- Reset ---- */}
+      {hasAnyFilter && (
+        <button className="filter-pill filter-pill--reset" onClick={resetAll}>
+          <RotateCcw className="w-3.5 h-3.5" />Reset
+        </button>
       )}
     </div>
   );

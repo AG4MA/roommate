@@ -2,11 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Component styles */
+@import './search.css';
+
+/* ==========================================================================
+   Global tokens
+   ========================================================================== */
+
 :root {
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 255, 255, 255;
   --background-end-rgb: 245, 245, 245;
 }
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
 
 body {
   color: rgb(var(--foreground-rgb));
@@ -18,36 +29,39 @@ body {
   min-height: 100vh;
 }
 
-/* Custom scrollbar */
+/* ==========================================================================
+   Scrollbar
+   ========================================================================== */
+
 ::-webkit-scrollbar {
   width: 8px;
 }
-
 ::-webkit-scrollbar-track {
   background: #f1f1f1;
 }
-
 ::-webkit-scrollbar-thumb {
   background: #c1c1c1;
   border-radius: 4px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
   background: #a1a1a1;
 }
 
-/* Map container */
-.leaflet-container {
-  width: 100%;
-  height: 100%;
-  border-radius: 0.75rem;
-}
-
-/* Hide scrollbar but keep scrolling */
+/* Hide scrollbar utility */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* ==========================================================================
+   Leaflet overrides
+   ========================================================================== */
+
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  border-radius: 0.75rem;
 }

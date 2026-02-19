@@ -22,27 +22,22 @@
 - [ ] Richiesta dati personali aggiuntivi al candidato (upload documenti, referenze)
 
 
-non trovo case SEDD!!!! mi devi dire come fare!!!
-dammene una fatta con specifici filtri se non onla trovo mai
 
 
-in più se un utente è loggato, il suo ID sarà la mail ,altrimenti se è gente che netra così il suo id sarà IP e possibilmente collezionare altre info assieme all'IP tipo geolaocazione, se consente, e tipo modello (diciamo che piu info ,se nza sembrare invadenti, prndiamo meglio è, dobibamo fare profilazione)
+questa tipologia di filtri non èè cio hche ho chiesto, ho detto filtri che sono INLINE e che scorrendo li vedi ie li puoi modificare clicandoci sopra, cosi non va nno bene
 
+tutto lo stile css deve stare negli appositti posti, devi implementare come se fossi un senior dev non un junior. deve stare no nnelle classi ma nei file css corretti
 
-per il momento i punti di interesse sono solo informativi, non fondamentali
+i filtri non scorrono mostrandosi tutti e se ci clichci sopra non ti escono le opzioni per ogni filtro.
 
-quando hai finito il wizard non voglio vedere la barra con i filtri, ma solo il tasto filtri e se clicchi escono tutti i filtri tipo una lineea scorribile da sx a dx con tutti i filtri gia selezionati. Se modifichi qualcosa automaticamente ricerca, e se ti sposti sulal mappa automaticamente ricerca
+volgio ribaltare la stituazione. Una stanza abbiamo etto ha max 3 romm seeker in attesa. la queue puo scendere nei seguenti modi.
 
-non volgio vedere altri filtri volanti no richiesti e il tasto cerca. in piu la mappa si vede male, voglioo una mappa migliore e fatta meglio ora non va bene. dimi se servono altre API
+hi ha messo l'annuncio vede la lista dei 3 interessati. ognuno di questi ha le sue caratteristiche in piu. il porprietario puo contattarli, o puo direttamente triggherare delle actions, tipo "certifica X o Y o Z" (se tu hai messo lavoratore, e sei lavoratore indeterminato lui puo fare certifica contratto di lavoro)
+quindi lui ha questi 3, lui puo eliminare qualcuno. quando la lista è piena, l'annuncio non è più visibile a tutti, e in un stato specifico.
+Se viene eliminata nuna persona, ritorna disponibile. le persone invece che cercano stanze, quando ne vedono una possono solo cliccare "mi interessa o salva annuncio"
+mi interessa mette in queue, e poi sara il proprietario a determinare che cosa farne, mentre salva annuncio lo mette da parte, ma se cambia stato nei "annunci salvati" lo vedrai "il numero di interessati è al massimo, no disponibile per il momento"
 
-quando uno publbica annuncio ha due strade, con o senza registrazione.
-senza registrazione all fine della pubblicazione si ottinee un link e un codice per modificare l'annuncio, il link porta alla pagina dove è rchiesto il codice.
-Se uno si registra ed inserisce il codice, automaticamente diventa proprietario dell'annuncio.
-ovviamente un acount on oregistrato non puo modiifcare in continuo e non puo mantenere un annuncio all'infinito. quindi gli si danno tipo 15 giorni, dopo deve re inserirlo, a meno che non si registra e ottiene la proprieta dell'annuncio.
+il porpietario cosa puo fare con i 3 partecipanti? la prima cosa è che manda l'ok per la schedulazione, e quindi a loro compare il calendario dove inserirsi per la visita, altrimenti il proprietario puo proporre open day -> con un giorno e orario specifico e loro dovranno accettare se si presentano oppure no. Se accettano e non si presentano (al proprietario sara chiesto poi chi ha partecipato) verranno marchiati con "mancata presenza"
+Se si arriva a 3 volte, l0utente viene bloccato per almeno 3 mesi.
 
-quando clicchi su affitta stanza, prima del tipo di inserzionista, deve uscire fuori "con registrazione" senza registrazione, e senza registrazione spiega tute queste regole nel dettalgio.
-
-e nel caso uno decide "ah ok meglio registrarsi, allora tonra indietro se s i registra"
-
-senza registraione non si puo avere interazioni ma solo lasciare mail e recapito telefonico. con registrazione si ha
-chat, best match profile, scheduling automatico visite, eccetera.
+e se il porprietario se ne frega e no dichiara? eh bella domanda, dobbiam ogestire quel caso, ma iniziamo con tutto il resto.

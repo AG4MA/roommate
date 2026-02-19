@@ -1355,6 +1355,66 @@ async function main() {
     },
   });
 
+  // ==================== 20 EXTRA MILANO LISTINGS (€500-€1000, wifi) ====================
+
+  const milanoExtras = [
+    { title: 'Singola vista Duomo - Centro Storico', addr: 'Via Torino 22, Milano', nb: 'Centro Storico', zip: '20123', lat: 45.4628, lng: 9.1870, size: 12, total: 90, floor: 5, elev: true, price: 950, exp: 100, dep: 1900, from: '2026-03-15', stay: 12, views: 410, pub: '2026-01-28', bath: true, balc: false, aircon: true, furn: true, wash: true, dish: true, park: false, pets: false, smoke: false, couples: false, ageMin: 25, ageMax: 40, occ: ['WORKING'], rm: [{ name: 'Valentina', age: 30, occupation: 'Lawyer' }], img: 'photo-1522708323590-d24dbb6b0267' },
+    { title: 'Singola con terrazzo - Isola', addr: 'Via Borsieri 38, Milano', nb: 'Isola', zip: '20159', lat: 45.4876, lng: 9.1862, size: 15, total: 95, floor: 6, elev: true, price: 680, exp: 70, dep: 1360, from: '2026-04-01', stay: 6, views: 220, pub: '2026-02-08', bath: false, balc: true, aircon: true, furn: true, wash: true, dish: true, park: false, pets: true, smoke: false, couples: false, ageMin: 22, ageMax: 35, occ: ['WORKING', 'FREELANCER'], rm: [{ name: 'Davide', age: 27, occupation: 'Product Manager' }, { name: 'Chiara', age: 25, occupation: 'Copywriter' }], img: 'photo-1502672260266-1c1ef2d93688' },
+    { title: 'Singola design - Porta Nuova', addr: 'Via Melchiorre Gioia 8, Milano', nb: 'Porta Nuova', zip: '20124', lat: 45.4810, lng: 9.1930, size: 14, total: 100, floor: 10, elev: true, price: 850, exp: 90, dep: 1700, from: '2026-03-01', stay: 12, views: 345, pub: '2026-02-01', bath: true, balc: true, aircon: true, furn: true, wash: true, dish: true, park: true, pets: false, smoke: false, couples: false, ageMin: 25, ageMax: 38, occ: ['WORKING'], rm: [{ name: 'Federico', age: 31, occupation: 'Investment Banker' }], img: 'photo-1560448204-e02f11c3d0e2' },
+    { title: 'Singola tranquilla - Porta Romana', addr: 'Corso di Porta Romana 76, Milano', nb: 'Porta Romana', zip: '20122', lat: 45.4540, lng: 9.2010, size: 13, total: 80, floor: 3, elev: false, price: 600, exp: 65, dep: 1200, from: '2026-03-15', stay: 6, views: 178, pub: '2026-02-10', bath: false, balc: false, aircon: false, furn: true, wash: true, dish: false, park: false, pets: false, smoke: false, couples: true, ageMin: 20, ageMax: 35, occ: ['STUDENT', 'WORKING'], rm: [{ name: 'Sara', age: 24, occupation: 'Medical Student' }], img: 'photo-1586023492125-27b2c045efd7' },
+    { title: 'Singola spaziosa - Navigli', addr: 'Alzaia Naviglio Grande 44, Milano', nb: 'Navigli', zip: '20144', lat: 45.4490, lng: 9.1710, size: 16, total: 88, floor: 2, elev: false, price: 720, exp: 80, dep: 1440, from: '2026-04-01', stay: 6, views: 290, pub: '2026-02-06', bath: false, balc: true, aircon: true, furn: true, wash: true, dish: true, park: false, pets: true, smoke: false, couples: false, ageMin: 22, ageMax: 36, occ: ['WORKING', 'FREELANCER'], rm: [{ name: 'Giulio', age: 29, occupation: 'Photographer' }, { name: 'Marta', age: 26, occupation: 'PR Specialist' }], img: 'photo-1513694203232-719a280e022f' },
+    { title: 'Singola luminosa con parquet - Città Studi', addr: 'Via Celoria 18, Milano', nb: 'Città Studi', zip: '20133', lat: 45.4760, lng: 9.2280, size: 14, total: 75, floor: 4, elev: true, price: 550, exp: 60, dep: 1100, from: '2026-03-01', stay: 6, views: 205, pub: '2026-02-12', bath: false, balc: false, aircon: false, furn: true, wash: true, dish: false, park: false, pets: false, smoke: false, couples: false, ageMin: 19, ageMax: 28, occ: ['STUDENT'], rm: [{ name: 'Matteo', age: 22, occupation: 'Engineering Student' }, { name: 'Lorenzo', age: 21, occupation: 'Physics Student' }], img: 'photo-1560185127-6ed189bf02f4' },
+    { title: 'Singola con studio - Garibaldi', addr: 'Corso Como 7, Milano', nb: 'Garibaldi', zip: '20154', lat: 45.4830, lng: 9.1870, size: 18, total: 105, floor: 7, elev: true, price: 900, exp: 95, dep: 1800, from: '2026-04-15', stay: 12, views: 380, pub: '2026-02-14', bath: true, balc: true, aircon: true, furn: true, wash: true, dish: true, park: false, pets: false, smoke: false, couples: false, ageMin: 26, ageMax: 40, occ: ['WORKING', 'FREELANCER'], rm: [{ name: 'Alberto', age: 33, occupation: 'Creative Director' }], img: 'photo-1522708323590-d24dbb6b0267' },
+    { title: 'Singola cozy - Sempione', addr: 'Via Canonica 35, Milano', nb: 'Sempione', zip: '20154', lat: 45.4770, lng: 9.1680, size: 11, total: 70, floor: 2, elev: false, price: 520, exp: 55, dep: 1040, from: '2026-03-01', stay: 6, views: 145, pub: '2026-02-11', bath: false, balc: false, aircon: false, furn: true, wash: true, dish: false, park: false, pets: true, smoke: false, couples: false, ageMin: 20, ageMax: 30, occ: ['STUDENT', 'WORKING'], rm: [{ name: 'Francesca', age: 24, occupation: 'Nurse' }, { name: 'Anna', age: 23, occupation: 'Design Student' }], img: 'photo-1502672260266-1c1ef2d93688' },
+    { title: 'Singola attico - Wagner', addr: 'Piazza Wagner 2, Milano', nb: 'Wagner', zip: '20145', lat: 45.4660, lng: 9.1560, size: 15, total: 115, floor: 6, elev: true, price: 1000, exp: 110, dep: 2000, from: '2026-05-01', stay: 12, views: 412, pub: '2026-02-15', bath: true, balc: true, aircon: true, furn: true, wash: true, dish: true, park: true, pets: false, smoke: false, couples: false, ageMin: 28, ageMax: 45, occ: ['WORKING'], rm: [{ name: 'Giorgio', age: 35, occupation: 'CEO' }], img: 'photo-1560448204-e02f11c3d0e2' },
+    { title: 'Singola giovane - Corvetto', addr: 'Via dei Cinquecento 9, Milano', nb: 'Corvetto', zip: '20141', lat: 45.4380, lng: 9.2120, size: 12, total: 65, floor: 1, elev: false, price: 500, exp: 50, dep: 1000, from: '2026-03-01', stay: 6, views: 98, pub: '2026-02-09', bath: false, balc: false, aircon: false, furn: true, wash: true, dish: false, park: false, pets: false, smoke: true, couples: false, ageMin: 18, ageMax: 28, occ: ['STUDENT'], rm: [{ name: 'Marco', age: 21, occupation: 'Art Student' }], img: 'photo-1586023492125-27b2c045efd7' },
+    { title: 'Singola pet-friendly - Dergano', addr: 'Via Livigno 3, Milano', nb: 'Dergano', zip: '20158', lat: 45.5010, lng: 9.1780, size: 14, total: 82, floor: 3, elev: true, price: 560, exp: 65, dep: 1120, from: '2026-04-01', stay: 6, views: 167, pub: '2026-02-07', bath: false, balc: true, aircon: false, furn: true, wash: true, dish: false, park: false, pets: true, smoke: false, couples: true, ageMin: 20, ageMax: 35, occ: ['WORKING', 'STUDENT'], rm: [{ name: 'Simone', age: 26, occupation: 'Veterinary Student' }], img: 'photo-1513694203232-719a280e022f' },
+    { title: 'Singola elegante - San Babila', addr: 'Corso Monforte 15, Milano', nb: 'San Babila', zip: '20122', lat: 45.4650, lng: 9.2010, size: 13, total: 95, floor: 4, elev: true, price: 880, exp: 85, dep: 1760, from: '2026-03-15', stay: 12, views: 356, pub: '2026-02-03', bath: true, balc: false, aircon: true, furn: true, wash: true, dish: true, park: false, pets: false, smoke: false, couples: false, ageMin: 25, ageMax: 40, occ: ['WORKING'], rm: [{ name: 'Beatrice', age: 29, occupation: 'Art Director' }], img: 'photo-1560185127-6ed189bf02f4' },
+    { title: 'Singola con giardino - Affori', addr: 'Via Pellegrino Rossi 42, Milano', nb: 'Affori', zip: '20161', lat: 45.5120, lng: 9.1710, size: 15, total: 90, floor: 0, elev: false, price: 530, exp: 60, dep: 1060, from: '2026-03-01', stay: 6, views: 132, pub: '2026-02-05', bath: false, balc: false, aircon: false, furn: true, wash: true, dish: false, park: true, pets: true, smoke: false, couples: false, ageMin: 20, ageMax: 35, occ: ['WORKING', 'STUDENT'], rm: [{ name: 'Paolo', age: 27, occupation: 'Teacher' }, { name: 'Ilaria', age: 25, occupation: 'Biologist' }], img: 'photo-1522708323590-d24dbb6b0267' },
+    { title: 'Singola moderna - Porta Genova', addr: 'Via Tortona 20, Milano', nb: 'Porta Genova', zip: '20144', lat: 45.4510, lng: 9.1670, size: 13, total: 78, floor: 3, elev: true, price: 650, exp: 70, dep: 1300, from: '2026-04-01', stay: 6, views: 223, pub: '2026-02-13', bath: false, balc: true, aircon: true, furn: true, wash: true, dish: true, park: false, pets: false, smoke: false, couples: true, ageMin: 22, ageMax: 35, occ: ['WORKING', 'FREELANCER'], rm: [{ name: 'Silvia', age: 28, occupation: 'Fashion Designer' }], img: 'photo-1502672260266-1c1ef2d93688' },
+    { title: 'Singola studentesca - Bovisa', addr: 'Via Durando 10, Milano', nb: 'Bovisa', zip: '20158', lat: 45.5040, lng: 9.1640, size: 10, total: 62, floor: 2, elev: false, price: 500, exp: 45, dep: 1000, from: '2026-03-01', stay: 6, views: 110, pub: '2026-02-04', bath: false, balc: false, aircon: false, furn: true, wash: true, dish: false, park: false, pets: false, smoke: false, couples: false, ageMin: 18, ageMax: 26, occ: ['STUDENT'], rm: [{ name: 'Andrea', age: 22, occupation: 'Design Student' }, { name: 'Riccardo', age: 23, occupation: 'Engineering Student' }], img: 'photo-1560448204-e02f11c3d0e2' },
+    { title: 'Singola panoramica - Porta Volta', addr: 'Via Volta 18, Milano', nb: 'Porta Volta', zip: '20121', lat: 45.4820, lng: 9.1770, size: 14, total: 88, floor: 5, elev: true, price: 700, exp: 75, dep: 1400, from: '2026-04-15', stay: 6, views: 195, pub: '2026-02-10', bath: false, balc: true, aircon: true, furn: true, wash: true, dish: true, park: false, pets: false, smoke: false, couples: false, ageMin: 23, ageMax: 36, occ: ['WORKING', 'FREELANCER'], rm: [{ name: 'Lucia', age: 27, occupation: 'Data Scientist' }], img: 'photo-1513694203232-719a280e022f' },
+    { title: 'Singola rilassante - Parco Sempione', addr: 'Via Canova 22, Milano', nb: 'Sempione', zip: '20145', lat: 45.4740, lng: 9.1720, size: 15, total: 92, floor: 4, elev: true, price: 750, exp: 80, dep: 1500, from: '2026-03-15', stay: 6, views: 260, pub: '2026-02-08', bath: true, balc: true, aircon: true, furn: true, wash: true, dish: true, park: false, pets: true, smoke: false, couples: false, ageMin: 24, ageMax: 38, occ: ['WORKING'], rm: [{ name: 'Elena', age: 30, occupation: 'Architect' }], img: 'photo-1586023492125-27b2c045efd7' },
+    { title: 'Singola artistica - Porta Ticinese', addr: 'Corso di Porta Ticinese 60, Milano', nb: 'Porta Ticinese', zip: '20123', lat: 45.4530, lng: 9.1800, size: 12, total: 72, floor: 2, elev: false, price: 580, exp: 55, dep: 1160, from: '2026-03-01', stay: 6, views: 175, pub: '2026-02-11', bath: false, balc: false, aircon: false, furn: true, wash: true, dish: false, park: false, pets: false, smoke: true, couples: true, ageMin: 20, ageMax: 32, occ: ['STUDENT', 'FREELANCER'], rm: [{ name: 'Giulia', age: 24, occupation: 'Illustrator' }, { name: 'Leo', age: 26, occupation: 'Musician' }], img: 'photo-1560185127-6ed189bf02f4' },
+    { title: 'Singola tech-ready - Maciachini', addr: 'Via Imbonati 14, Milano', nb: 'Maciachini', zip: '20159', lat: 45.4960, lng: 9.1810, size: 13, total: 76, floor: 4, elev: true, price: 620, exp: 65, dep: 1240, from: '2026-04-01', stay: 6, views: 148, pub: '2026-02-12', bath: false, balc: true, aircon: true, furn: true, wash: true, dish: false, park: false, pets: false, smoke: false, couples: false, ageMin: 22, ageMax: 34, occ: ['WORKING', 'FREELANCER'], rm: [{ name: 'Luca', age: 28, occupation: 'Software Engineer' }], img: 'photo-1522708323590-d24dbb6b0267' },
+    { title: 'Singola chic - Brera', addr: 'Via Fiori Chiari 8, Milano', nb: 'Brera', zip: '20121', lat: 45.4720, lng: 9.1860, size: 11, total: 85, floor: 3, elev: true, price: 980, exp: 100, dep: 1960, from: '2026-05-01', stay: 12, views: 390, pub: '2026-02-16', bath: true, balc: false, aircon: true, furn: true, wash: true, dish: true, park: false, pets: false, smoke: false, couples: false, ageMin: 27, ageMax: 42, occ: ['WORKING'], rm: [{ name: 'Alessia', age: 34, occupation: 'Gallery Owner' }], img: 'photo-1560448204-e02f11c3d0e2' },
+  ];
+
+  for (let i = 0; i < milanoExtras.length; i++) {
+    const e = milanoExtras[i];
+    await prisma.listing.create({
+      data: {
+        landlordId: [landlord1.id, landlord2.id, landlord3.id][i % 3],
+        title: e.title,
+        description: `${e.title}. Stanza singola in appartamento condiviso nel quartiere ${e.nb} di Milano. WiFi veloce incluso, perfetta per lavoro e studio da casa.`,
+        status: 'ACTIVE',
+        address: e.addr,
+        city: 'Milano',
+        neighborhood: e.nb,
+        postalCode: e.zip,
+        latitude: e.lat,
+        longitude: e.lng,
+        roomType: 'SINGLE',
+        roomSize: e.size,
+        totalSize: e.total,
+        floor: e.floor,
+        hasElevator: e.elev,
+        price: e.price,
+        expenses: e.exp,
+        deposit: e.dep,
+        availableFrom: new Date(e.from),
+        minStay: e.stay,
+        views: e.views,
+        publishedAt: new Date(e.pub),
+        features: { create: { wifi: true, furnished: e.furn, privateBath: e.bath, balcony: e.balc, aircon: e.aircon, heating: true, washingMachine: e.wash, dishwasher: e.dish, parking: e.park, garden: false, terrace: false } },
+        rules: { create: { petsAllowed: e.pets, smokingAllowed: e.smoke, couplesAllowed: e.couples, guestsAllowed: true, quietHoursStart: '22:00', quietHoursEnd: '08:00' } },
+        preferences: { create: { gender: null, ageMin: e.ageMin, ageMax: e.ageMax, occupation: e.occ, languages: ['Italiano', 'Inglese'] } },
+        roommates: { create: e.rm },
+        images: { create: [{ url: `https://images.unsplash.com/${e.img}?w=800`, order: 0 }] },
+      },
+    });
+  }
+
   // ==================== SEARCHING TENANTS (simulating active seekers) ====================
 
   const searcher1 = await prisma.user.create({
@@ -1623,7 +1683,7 @@ async function main() {
   });
 
   console.log('Seed completed successfully!');
-  console.log(`Created: 3 landlords, 8 tenants (5 + 3 searchers), 30 listings (24 SINGLE), visit slots, bookings, conversations, favorites, reviews, 1 housemate group`);
+  console.log(`Created: 3 landlords, 8 tenants (5 + 3 searchers), 50 listings (44 SINGLE, 20 Milano extras €500-1000 w/ wifi), visit slots, bookings, conversations, favorites, reviews, 1 housemate group`);
 }
 
 main()

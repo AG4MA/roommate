@@ -1,0 +1,174 @@
+/* ==========================================================================
+   Search page – component styles
+   Imported in globals.css via @import or loaded by cerca/page.tsx
+   ========================================================================== */
+
+/* ---------- Filter bar ---------- */
+.filter-bar {
+  @apply flex items-center gap-2 overflow-x-auto py-1;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.filter-bar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Single filter pill (idle) */
+.filter-pill {
+  @apply relative shrink-0 flex items-center gap-1.5 px-4 py-2
+         rounded-full border border-gray-200 bg-white
+         text-sm font-medium text-gray-700
+         cursor-pointer select-none whitespace-nowrap
+         transition-all duration-150;
+}
+.filter-pill:hover {
+  @apply border-sky-300 bg-sky-50 text-sky-700;
+}
+
+/* Active pill – a filter value is set */
+.filter-pill--active {
+  @apply border-sky-500 bg-sky-50 text-sky-700 font-semibold;
+}
+
+/* Clear button inside active pill */
+.filter-pill__clear {
+  @apply ml-0.5 p-0.5 rounded-full hover:bg-sky-200 transition-colors;
+}
+
+/* "Reset all" pill */
+.filter-pill--reset {
+  @apply border-gray-200 bg-white text-gray-500;
+}
+.filter-pill--reset:hover {
+  @apply border-red-300 bg-red-50 text-red-600;
+}
+
+/* ---------- Inline dropdown (appears below a pill) ---------- */
+.filter-dropdown {
+  @apply absolute top-full left-0 mt-2 z-50
+         bg-white rounded-xl shadow-xl border border-gray-100
+         p-3 min-w-[200px];
+  animation: filter-dropdown-in 0.12s ease-out;
+}
+
+@keyframes filter-dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.filter-dropdown__label {
+  @apply block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2;
+}
+
+.filter-dropdown__input {
+  @apply w-full px-3 py-2 rounded-lg border border-gray-200 text-sm
+         focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent;
+}
+
+.filter-dropdown__row {
+  @apply flex items-center gap-2;
+}
+
+.filter-dropdown__option {
+  @apply block w-full text-left px-3 py-2 rounded-lg text-sm text-gray-700
+         hover:bg-sky-50 hover:text-sky-700 transition-colors;
+}
+.filter-dropdown__option--active {
+  @apply bg-sky-100 text-sky-700 font-semibold;
+}
+
+/* Toggle chip inside dropdown */
+.filter-chip {
+  @apply px-3 py-1.5 rounded-full text-xs font-medium border transition-colors cursor-pointer;
+}
+.filter-chip--off {
+  @apply bg-white text-gray-600 border-gray-200 hover:border-sky-300;
+}
+.filter-chip--on {
+  @apply bg-sky-600 text-white border-sky-600;
+}
+
+/* ---------- Search content layout ---------- */
+.search-page {
+  @apply h-[calc(100vh-4rem)] flex flex-col;
+}
+
+.search-filter-bar {
+  @apply bg-white/80 backdrop-blur-sm border-b border-gray-100 px-4 py-2;
+}
+
+.search-content {
+  @apply flex-1 flex flex-col overflow-hidden;
+}
+
+.search-mobile-toggle {
+  @apply flex items-center justify-center px-4 py-2 bg-white border-b;
+}
+
+.search-mobile-btn {
+  @apply flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors;
+}
+.search-mobile-btn--active {
+  @apply bg-white text-sky-600 shadow-sm;
+}
+.search-mobile-btn--inactive {
+  @apply text-gray-500;
+}
+
+.search-split {
+  @apply flex-1 flex overflow-hidden;
+}
+
+.search-list-pane {
+  @apply w-full lg:w-1/2 overflow-y-auto p-4 bg-gray-50;
+}
+
+.search-map-pane {
+  @apply w-full lg:w-1/2 relative;
+}
+
+/* ---------- Map ---------- */
+.map-loading {
+  @apply h-full bg-gray-100 flex items-center justify-center;
+}
+
+.map-spinner {
+  @apply w-8 h-8 border-2 border-gray-300 border-t-sky-600 rounded-full animate-spin;
+}
+
+/* Price badge marker */
+.map-price-badge {
+  background: white;
+  color: #0369a1;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  border: 2px solid #0ea5e9;
+  white-space: nowrap;
+  text-align: center;
+}
+
+/* Popup */
+.map-popup-title {
+  @apply font-semibold text-gray-800 text-sm leading-snug;
+}
+.map-popup-title:hover {
+  @apply text-sky-600;
+}
+.map-popup-subtitle {
+  @apply text-xs text-gray-500 mt-0.5;
+}
+.map-popup-price {
+  @apply text-sky-600 font-bold text-sm mt-1;
+}
+.map-popup-img {
+  @apply w-full h-28 object-cover rounded-lg mb-2;
+}
