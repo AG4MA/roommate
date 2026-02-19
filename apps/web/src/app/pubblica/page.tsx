@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession, signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import {
   ChevronLeft, ChevronRight, Save, Send, Loader2, CheckCircle,
   Building2, User, Repeat2, ShieldAlert, AlertTriangle, BadgeCheck,
-  UserPlus, UserX, Clock, Mail, Phone, Link2, Copy, Check
+  UserPlus, UserX, Clock, Mail, Phone, Link2, Copy, Check, Lock
 } from 'lucide-react';
 import { trackAction } from '@/hooks/useAnalytics';
 
@@ -257,14 +257,76 @@ function OnboardingSetup({
   onDone: (type: PublisherType) => void;
   onBack: () => void;
 }) {
-  const { data: session } = useSession();
+  const { data: session, update: updateSession } = useSession();
   const [selected, setSelected] = useState<PublisherType | null>(null);
   const [accepted, setAccepted] = useState<[boolean, boolean]>([false, false]);
   const allAccepted = accepted[0] && accepted[1];
   const options = regMode === 'anonymous' ? TYPE_OPTIONS.filter((o) => o.value !== 'company') : TYPE_OPTIONS;
   const companyValid = companyName.trim().length >= 2 && /^[A-Z]{2}\d{9,12}$/.test(vatNumber.replace(/\s/g, '').toUpperCase());
 
-  const canProceed = selected && allAccepted && (selected !== 'company' || (companyValid && session));
+  // Inline registration state
+  const needsRegistration = regMode === 'registered' && !session;
+  const [regName, setRegName] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [regError, setRegError] = useState('');
+  const [regLoading, setRegLoading] = useState(false);
+
+  const regValid = regName.trim().length >= 2 && regEmail.includes('@') && regPassword.length >= 8;
+
+  const canProceed = selected && allAccepted
+    && (selected !== 'company' || companyValid)
+    && (!needsRegistration || regValid);
+
+  const handleContinue = async () => {
+    if (!canProceed || !selected) return;
+
+    // If user needs to register, do it inline
+    if (needsRegistration) {
+      setRegLoading(true);
+      setRegError('');
+      try {
+        // Register
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: regName,
+            email: regEmail,
+            password: regPassword,
+            userType: 'landlord',
+          }),
+        });
+        const data = await res.json();
+        if (!data.success) {
+          setRegError(data.error || 'Errore durante la registrazione');
+          setRegLoading(false);
+          return;
+        }
+        // Auto-login
+        const result = await signIn('credentials', {
+          email: regEmail,
+          password: regPassword,
+          redirect: false,
+        });
+        if (result?.error) {
+          setRegError('Registrazione riuscita ma login fallito. Riprova.');
+          setRegLoading(false);
+          return;
+        }
+        // Refresh session
+        await updateSession();
+        trackAction('inline_registration_pubblica', { type: selected });
+      } catch {
+        setRegError('Errore di connessione');
+        setRegLoading(false);
+        return;
+      }
+      setRegLoading(false);
+    }
+
+    onDone(selected);
+  };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 py-12">
@@ -335,12 +397,47 @@ function OnboardingSetup({
                   <input type="text" value={vatNumber} onChange={(e) => onChangeCompany({ vatNumber: e.target.value })} placeholder="IT01234567890" className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-mono focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" />
                 </div>
               </div>
-              {!session && (
-                <div className="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200">
-                  <p className="text-xs text-amber-800"><strong>Registrazione obbligatoria</strong> per profili aziendali.</p>
-                  <a href="/registrati?role=landlord&redirect=/pubblica" className="inline-block mt-1 text-xs font-semibold text-primary-600 hover:text-primary-700">Registrati ora &rarr;</a>
+            </div>
+          )}
+
+          {/* Inline registration fields — appear when registered mode + not logged in + flags accepted */}
+          {needsRegistration && allAccepted && (
+            <div className="border-t border-gray-100 pt-5 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <p className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2"><UserPlus className="w-4 h-4 text-primary-600" />Crea il tuo account</p>
+              <p className="text-xs text-gray-500 mb-4">Completa la registrazione per proseguire con la pubblicazione.</p>
+              {regError && (
+                <div className="mb-3 p-3 bg-red-50 rounded-xl text-red-700 text-sm flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />{regError}
                 </div>
               )}
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Nome</label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input type="text" value={regName} onChange={(e) => setRegName(e.target.value)} placeholder="Il tuo nome" required minLength={2} className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Email</label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input type="email" value={regEmail} onChange={(e) => setRegEmail(e.target.value)} placeholder="mario@esempio.it" required className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Password</label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input type="password" value={regPassword} onChange={(e) => setRegPassword(e.target.value)} placeholder="Minimo 8 caratteri" required minLength={8} className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <p className="mt-3 text-xs text-gray-400">
+                Hai gi&agrave; un account? <a href="/login?redirect=/pubblica" className="text-primary-600 hover:underline font-medium">Accedi</a>
+              </p>
             </div>
           )}
 
@@ -350,11 +447,12 @@ function OnboardingSetup({
               <ChevronLeft className="w-4 h-4" />Indietro
             </button>
             <button
-              onClick={() => canProceed && onDone(selected!)}
-              disabled={!canProceed}
+              onClick={handleContinue}
+              disabled={!canProceed || regLoading}
               className="flex items-center gap-2 px-7 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
-              <BadgeCheck className="w-4 h-4" />Continua
+              {regLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <BadgeCheck className="w-4 h-4" />}
+              {needsRegistration && allAccepted ? 'Registrati e continua' : 'Continua'}
             </button>
           </div>
         </div>
@@ -472,26 +570,39 @@ export default function PubblicaPage() {
   }
 
   if (publisherType === 'company' && (!session || session.user.role !== 'landlord')) {
+    // Company users who somehow lost their session — redirect back to setup for inline re-registration
     return (
-      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-        <h1 className="text-2xl font-bold text-gray-800 mb-4">Registrazione obbligatoria</h1>
-        <p className="text-gray-500 mb-6">I profili aziendali devono registrarsi come proprietari per pubblicare annunci.</p>
-        <a href="/registrati" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold transition-colors">Registrati come proprietario</a>
-      </div>
+      <OnboardingSetup
+        regMode={regMode!}
+        companyName={formData.companyName || ''}
+        vatNumber={formData.vatNumber || ''}
+        onChangeCompany={(u) => setFormData((p) => ({ ...p, ...u }))}
+        onDone={(type) => {
+          setPublisherType(type);
+          setFormData((p) => ({ ...p, publisherType: type }));
+          setOnboardingPhase('done');
+        }}
+        onBack={() => setOnboardingPhase('reg-choice')}
+      />
     );
   }
 
+  // Registration is now handled inline in OnboardingSetup,
+  // so if user lost session mid-wizard, redirect back to setup for re-login
   if (regMode === 'registered' && !session) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-        <h1 className="text-2xl font-bold text-gray-800 mb-4">Accedi o registrati</h1>
-        <p className="text-gray-500 mb-6">Hai scelto di pubblicare con registrazione. Accedi o crea un account per continuare.</p>
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <a href="/registrati?redirect=/pubblica" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold transition-colors"><UserPlus className="w-5 h-5" />Registrati</a>
-          <a href="/login?redirect=/pubblica" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-gray-200 text-gray-700 font-semibold hover:bg-gray-50 transition-colors">Accedi</a>
-        </div>
-        <button onClick={() => setOnboardingPhase('reg-choice')} className="mt-6 text-sm text-gray-500 hover:text-primary-600 transition-colors">&larr; Torna indietro e pubblica senza registrazione</button>
-      </div>
+      <OnboardingSetup
+        regMode={regMode}
+        companyName={formData.companyName || ''}
+        vatNumber={formData.vatNumber || ''}
+        onChangeCompany={(u) => setFormData((p) => ({ ...p, ...u }))}
+        onDone={(type) => {
+          setPublisherType(type);
+          setFormData((p) => ({ ...p, publisherType: type }));
+          setOnboardingPhase('done');
+        }}
+        onBack={() => setOnboardingPhase('reg-choice')}
+      />
     );
   }
 

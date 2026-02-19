@@ -8,7 +8,8 @@ export type AmenityType =
   | 'METRO_STATION'
   | 'TRAIN_STATION'
   | 'BUS_STOP'
-  | 'TRAM_STOP';
+  | 'TRAM_STOP'
+  | 'BICYCLE_PARKING';
 
 export interface NearbyAmenityResult {
   type: AmenityType;
@@ -63,6 +64,10 @@ function buildOverpassQuery(lat: number, lng: number, radiusM: number): string {
 
   // Tram stops
   node["railway"="tram_stop"]${around};
+
+  // Bicycle parking
+  node["amenity"="bicycle_parking"]${around};
+  way["amenity"="bicycle_parking"]${around};
 );
 out center;
 `;
@@ -80,6 +85,7 @@ function classifyElement(el: OverpassElement): AmenityType | null {
   if (tags.railway === 'station') return 'TRAIN_STATION';
   if (tags.highway === 'bus_stop') return 'BUS_STOP';
   if (tags.railway === 'tram_stop') return 'TRAM_STOP';
+  if (tags.amenity === 'bicycle_parking') return 'BICYCLE_PARKING';
 
   return null;
 }
@@ -98,6 +104,7 @@ function getElementName(el: OverpassElement, type: AmenityType): string {
     TRAIN_STATION: 'Stazione Ferroviaria',
     BUS_STOP: 'Fermata Bus',
     TRAM_STOP: 'Fermata Tram',
+    BICYCLE_PARKING: 'Deposito Biciclette',
   };
 
   return defaults[type] || 'Punto di interesse';

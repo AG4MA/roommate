@@ -1,14 +1,38 @@
-quando rimuovi il mi interessa, lo puoi solo re inserire dopo 24h non prima, e nel pop up questo viene segnalato
+# rooMate — TODO (SAL aggiornato)
 
-quando selezioni la citta, mancherebbe anche l'opzione di scegliere poi i quartireri o distanzad da un punto specificando una via o trascinadno a mano un pin e fare un cerchio con quantita km di raggio
+## ✅ Completati
 
+### 1. Cooldown 24h — popup ritiro interesse
+- [x] Popup `handleWithdraw` avvisa: "Potrai esprimere nuovo interesse solo dopo 24 ore"
+- [x] API DELETE: salva `removedAt` quando utente ritira interesse
+- [x] API GET: calcola `cooldownUntil = removedAt + 24h` e lo restituisce al client
+- [x] API POST: impedisce nuovo interesse se cooldown attivo (429)
 
-non ci siamo porprio con il blocco 
-AFFITTA STANZa
+### 2. AFFITTA STANZA — registrazione inline
+- [x] Dopo type selection + flag → campi registrazione (nome, email, password) inline sotto i flag
+- [x] Nessun redirect a /registrati; auto-login dopo submit, poi prosegui nel wizard
+- [x] Se utente già loggato: saltare i campi registrazione, proseguire direttamente
 
-ho espresso che quando entri e fai con registrazione  e selezioni il tipo e fai ok ai falg richiesti, poi escono subito sotto i campi per la registrazione e non che vai in un altra pagine per fare registrazione. fai i falg, poi continua, poi appaiono le input del tuoi tipo e stop. stesa cosa quando fai in alto a destra registrati, devi finire esattamente dove richiede di selezionare il tipo, ce la fai?
+### 3. Pagina /registrati — selezione tipo utente
+- [x] Prima dei campi form, scegliere "Inquilino" o "Proprietario" (card con icone)
+- [x] Supporto preselection via `?role=landlord`; proprietario rediretto a /pubblica dopo registrazione
 
-manca anche il fatto che dovresti evidenziare nella mappa le fermate autobus, tram trereno e metro vicine casa.
+### 4. Mappa — fermate mezzi pubblici
+- [x] MiniMap (dettaglio stanza) mostra marker per bus, tram, treno, metro, bici
+- [x] Fetch Overpass client-side quando mappa si apre, con dedup + ordinamento distanza
+- [x] Emoji/colori diversi per tipo + legenda con conteggi
 
-manca anche deopisto biciclette.
+### 5. Feature — Deposito biciclette
+- [x] `BICYCLE_PARKING` aggiunto a enum AmenityType (schema.prisma)
+- [x] Query Overpass per `amenity=bicycle_parking` (overpass.ts)
+- [x] Marker nella mappa MiniMap + LeafletMini
+
+## 📋 Backlog futuro
+- Ricerca città con quartieri o distanza da punto (pin + raggio km)
+- Previsione disponibilità futura e notifica stanza libera
+- Distanze personalizzate rispetto a luoghi preferiti
+- Social login (Google/Microsoft)
+- FAQ e video tutorial per proprietari
+- Notifiche push/email quando candidato compatibile mostra interesse
+- Dashboard admin per leggere feedback
 

@@ -167,10 +167,23 @@ export async function POST(
     });
 
     if (existingInterest) {
-      return NextResponse.json<ApiResponse<null>>(
-        { success: false, error: 'Hai già espresso interesse per questo annuncio' },
-        { status: 409 }
-      );
+      // If withdrawn with cooldown still active, block re-express
+      if (existingInterest.status === 'WITHDRAWN' && existingInterest.removedAt) {
+        const cooldownUntil = new Date(existingInterest.removedAt.getTime() + 24 * 60 * 60 * 1000);
+        if (cooldownUntil > new Date()) {
+          return NextResponse.json<ApiResponse<null>>(
+            { success: false, error: 'Devi attendere 24 ore dal ritiro prima di poter esprimere nuovo interesse' },
+            { status: 429 }
+          );
+        }
+        // Cooldown expired — delete old record so we can create a fresh one
+        await prisma.interest.delete({ where: { id: existingInterest.id } });
+      } else {
+        return NextResponse.json<ApiResponse<null>>(
+          { success: false, error: 'Hai già espresso interesse per questo annuncio' },
+          { status: 409 }
+        );
+      }
     }
 
     // Count active interests
@@ -274,7 +287,7 @@ export async function DELETE(
 
     await prisma.interest.update({
       where: { id: interest.id },
-      data: { status: 'WITHDRAWN' },
+      data: { status: 'WITHDRAWN', removedAt: new Date() },
     });
 
     // Promote next waiting user if we were in active slots
@@ -360,6 +373,27 @@ export async function GET(
         })
       : null;
 
+    // Check cooldown from withdrawn interest
+    let cooldownUntil: string | null = null;
+    if (userInterest?.status === 'WITHDRAWN' && userInterest.removedAt) {
+      const until = new Date(userInterest.removedAt.getTime() + 24 * 60 * 60 * 1000);
+      if (until > new Date()) {
+        cooldownUntil = until.toISOString();
+      }
+    }
+
+    // Also check across all listings for total user interest count
+    let totalUserInterests = 0;
+    const maxUserInterests = 8;
+    if (session?.user?.id) {
+      totalUserInterests = await prisma.interest.count({
+        where: {
+          tenantId: session.user.id,
+          status: { in: ['ACTIVE', 'WAITING'] },
+        },
+      });
+    }
+
     // Count interests
     const counts = await prisma.interest.groupBy({
       by: ['status'],
@@ -370,19 +404,27 @@ export async function GET(
     const activeCount = counts.find((c: { status: string; _count: number }) => c.status === 'ACTIVE')?._count ?? 0;
     const waitingCount = counts.find((c: { status: string; _count: number }) => c.status === 'WAITING')?._count ?? 0;
 
+    // For withdrawn interests under cooldown, don't show them as "userInterest"
+    const visibleUserInterest = userInterest && ['ACTIVE', 'WAITING'].includes(userInterest.status)
+      ? userInterest
+      : null;
+
     const data = {
-      canExpress: !userInterest && activeCount < MAX_ACTIVE_INTERESTS,
+      canExpress: !visibleUserInterest && activeCount < MAX_ACTIVE_INTERESTS && !cooldownUntil,
       queueFull: activeCount >= MAX_ACTIVE_INTERESTS,
       activeCount,
       waitingCount,
       maxActive: MAX_ACTIVE_INTERESTS,
-      userInterest: userInterest
+      userInterest: visibleUserInterest
         ? {
-            status: userInterest.status,
-            position: userInterest.position,
-            score: userInterest.score,
+            status: visibleUserInterest.status,
+            position: visibleUserInterest.position,
+            score: visibleUserInterest.score,
           }
         : null,
+      cooldownUntil,
+      totalUserInterests,
+      maxUserInterests,
     };
 
     return NextResponse.json<ApiResponse<typeof data>>({

@@ -101,7 +101,7 @@ export function InterestActions({ listingId }: InterestActionsProps) {
   };
 
   const handleWithdraw = async () => {
-    if (!confirm('Vuoi ritirare il tuo interesse?')) return;
+    if (!confirm('Vuoi ritirare il tuo interesse?\n\nAttenzione: dopo il ritiro dovrai attendere 24 ore prima di poter esprimere nuovamente interesse per questo annuncio.')) return;
     setActing('withdraw');
     try {
       const res = await fetch(`/api/listings/${listingId}/interest`, { method: 'DELETE' });

@@ -497,6 +497,7 @@ enum AmenityType {
   TRAIN_STATION
   BUS_STOP
   TRAM_STOP
+  BICYCLE_PARKING
 }
 
 // ==================== INTEREST SYSTEM ====================
