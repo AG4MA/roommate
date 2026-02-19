@@ -1,21 +1,38 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, SlidersHorizontal, X } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Search, SlidersHorizontal, X, RefreshCcw } from 'lucide-react';
 
 export function SearchFilters() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [filters, setFilters] = useState({
-    location: '',
-    priceMin: '',
-    priceMax: '',
-    roomType: 'all',
-    furnished: false,
-    privateBath: false,
-    petsAllowed: false,
-    smokingAllowed: false,
-    gender: 'all',
+    location: searchParams.get('city') || '',
+    priceMin: searchParams.get('minPrice') || '',
+    priceMax: searchParams.get('maxPrice') || '',
+    roomType: searchParams.get('roomType') || 'all',
+    furnished: searchParams.get('furnished') === 'true',
+    privateBath: searchParams.get('privateBath') === 'true',
+    petsAllowed: searchParams.get('petsAllowed') === 'true',
+    smokingAllowed: searchParams.get('smokingAllowed') === 'true',
+    gender: searchParams.get('gender') || 'all',
   });
+
+  function handleSearch() {
+    const params = new URLSearchParams();
+    if (filters.location.trim()) params.set('city', filters.location.trim());
+    if (filters.priceMin) params.set('minPrice', filters.priceMin);
+    if (filters.priceMax) params.set('maxPrice', filters.priceMax);
+    if (filters.roomType !== 'all') params.set('roomType', filters.roomType);
+    if (filters.furnished) params.set('furnished', 'true');
+    if (filters.privateBath) params.set('privateBath', 'true');
+    if (filters.petsAllowed) params.set('petsAllowed', 'true');
+    if (filters.smokingAllowed) params.set('smokingAllowed', 'true');
+    if (filters.gender !== 'all') params.set('gender', filters.gender);
+    router.push(`/cerca?${params.toString()}`);
+  }
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -69,8 +86,20 @@ export function SearchFilters() {
           Filtri
         </button>
 
-        <button className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors">
+        <button
+          onClick={handleSearch}
+          className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors"
+        >
           Cerca
+        </button>
+
+        <button
+          onClick={() => router.push('/cerca/wizard')}
+          className="hidden lg:flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-gray-200 hover:border-primary-300 hover:bg-primary-50 text-gray-600 hover:text-primary-600 transition-colors"
+          title="Ripeti il wizard di ricerca"
+        >
+          <RefreshCcw className="w-4 h-4" />
+          <span className="text-sm font-medium">Ripeti ricerca</span>
         </button>
       </div>
 

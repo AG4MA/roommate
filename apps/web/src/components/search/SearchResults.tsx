@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { MapPin, Users, Wifi } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { MapPin, Users, Wifi, Sparkles } from 'lucide-react';
 import type { ListingCard } from '@roommate/shared';
 import { getRoomTypeLabel } from '@roommate/shared';
 
@@ -10,7 +11,111 @@ interface SearchResultsProps {
   loading?: boolean;
 }
 
+// ── Smart match scoring ──
+// Computes a 0-100 match % for each listing based on user wizard preferences
+// stored in the URL search params.
+
+function computeMatchScore(
+  room: ListingCard,
+  params: URLSearchParams
+): number {
+  let total = 0;
+  let matched = 0;
+
+  // Price range match
+  const maxPrice = params.get('maxPrice');
+  if (maxPrice) {
+    total += 25;
+    const max = Number(maxPrice);
+    if (room.price <= max) matched += 25;
+    else if (room.price <= max * 1.15) matched += 12; // within 15%
+  }
+
+  // City match
+  const city = params.get('city');
+  if (city) {
+    total += 20;
+    if (room.city.toLowerCase() === city.toLowerCase()) matched += 20;
+  }
+
+  // Room type match
+  const roomType = params.get('roomType');
+  if (roomType) {
+    total += 15;
+    if (room.roomType === roomType) matched += 15;
+  }
+
+  // Gender preference match
+  const gender = params.get('gender');
+  if (gender && gender !== 'ANY') {
+    total += 10;
+    // If listing has no gender preference or matches, it's a match
+    if (!room.preferences?.gender || room.preferences.gender === gender) matched += 10;
+  }
+
+  // Features match (wifi, furnished, privateBath)
+  const furnished = params.get('furnished');
+  if (furnished === 'true') {
+    total += 10;
+    if (room.features.furnished) matched += 10;
+  }
+  const privateBath = params.get('privateBath');
+  if (privateBath === 'true') {
+    total += 10;
+    if (room.features.privateBath) matched += 10;
+  }
+  const petsAllowed = params.get('petsAllowed');
+  if (petsAllowed === 'true') {
+    total += 5;
+    if (room.rules?.petsAllowed) matched += 5;
+  }
+  const smokingAllowed = params.get('smokingAllowed');
+  if (smokingAllowed === 'true') {
+    total += 5;
+    if (room.rules?.smokingAllowed) matched += 5;
+  }
+
+  // If no filters applied, return -1 to indicate "no scoring"
+  if (total === 0) return -1;
+
+  return Math.round((matched / total) * 100);
+}
+
+function MatchBadge({ score }: { score: number }) {
+  if (score < 0) return null;
+
+  const color =
+    score >= 80 ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
+    : score >= 60 ? 'bg-amber-100 text-amber-700 border-amber-200'
+    : 'bg-gray-100 text-gray-600 border-gray-200';
+
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${color}`}>
+      <Sparkles className="w-3 h-3" />
+      {score}% match
+    </span>
+  );
+}
+
 export function SearchResults({ listings, loading }: SearchResultsProps) {
+  const searchParams = useSearchParams();
+
+  // Compute match scores for each listing
+  const scored = listings.map((room) => ({
+    room,
+    score: computeMatchScore(room, searchParams),
+  }));
+
+  // Sort by score descending (unscored at the end)
+  const sorted = scored.sort((a, b) => {
+    if (a.score < 0 && b.score < 0) return 0;
+    if (a.score < 0) return 1;
+    if (b.score < 0) return -1;
+    return b.score - a.score;
+  });
+
+  const hasScores = scored.some((s) => s.score >= 0);
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -49,8 +154,14 @@ export function SearchResults({ listings, loading }: SearchResultsProps) {
         </div>
       ) : (
         <div className="space-y-4">
-          {listings.map((room) => (
-            <RoomCard key={room.id} room={room} />
+          {hasScores && (
+            <p className="text-xs text-gray-400 flex items-center gap-1">
+              <Sparkles className="w-3 h-3" />
+              Risultati ordinati per compatibilità con le tue preferenze
+            </p>
+          )}
+          {sorted.map(({ room, score }) => (
+            <RoomCard key={room.id} room={room} matchScore={score} />
           ))}
         </div>
       )}
@@ -58,7 +169,7 @@ export function SearchResults({ listings, loading }: SearchResultsProps) {
   );
 }
 
-function RoomCard({ room }: { room: ListingCard }) {
+function RoomCard({ room, matchScore }: { room: ListingCard; matchScore: number }) {
   return (
     <Link href={`/stanza/${room.id}`}>
       <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden flex">
@@ -73,6 +184,12 @@ function RoomCard({ room }: { room: ListingCard }) {
           ) : (
             <div className="absolute inset-0 flex items-center justify-center text-gray-400">
               <MapPin className="w-8 h-8" />
+            </div>
+          )}
+          {/* Match badge overlaid on image */}
+          {matchScore >= 0 && (
+            <div className="absolute top-2 left-2">
+              <MatchBadge score={matchScore} />
             </div>
           )}
         </div>

@@ -4,6 +4,7 @@ import './globals.css';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { AuthProvider } from '@/components/auth/AuthProvider';
+import { AnalyticsTracker } from '@/components/layout/AnalyticsTracker';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -22,6 +23,7 @@ export default function RootLayout({
     <html lang="it">
       <body className={inter.className}>
         <AuthProvider>
+          <AnalyticsTracker />
           <div className="flex flex-col min-h-screen">
             <Navbar />
             <main className="flex-grow">

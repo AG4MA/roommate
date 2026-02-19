@@ -6,8 +6,10 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Plus, Eye, MapPin, Euro, Calendar, Loader2,
-  MoreVertical, Pencil, Trash2, Pause, Play, AlertCircle
+  MoreVertical, Pencil, Trash2, Pause, Play, AlertCircle,
+  X, Lightbulb, BookOpen, Video, ArrowRight, Users
 } from 'lucide-react';
+import { AppointmentQueueDemo } from '@/components/listing/AppointmentQueue';
 
 interface MyListing {
   id: string;
@@ -41,6 +43,67 @@ const roomTypeLabels: Record<string, string> = {
   ENTIRE_PLACE: 'Intero',
 };
 
+// ── First-time onboarding helper ──
+
+function OnboardingHelper({ onDismiss }: { onDismiss: () => void }) {
+  const tips = [
+    {
+      icon: <Lightbulb className="w-6 h-6" />,
+      title: 'Crea il tuo primo annuncio',
+      desc: 'Pubblica una stanza in pochi minuti. Ti guidiamo passo passo.',
+      cta: { label: 'Pubblica ora', href: '/pubblica' },
+    },
+    {
+      icon: <BookOpen className="w-6 h-6" />,
+      title: 'Leggi le FAQ',
+      desc: 'Domande frequenti su prezzi, visibilità e gestione degli annunci.',
+      cta: { label: 'Vai alle FAQ', href: '#' },
+    },
+    {
+      icon: <Video className="w-6 h-6" />,
+      title: 'Video tutorial',
+      desc: 'Guarda come i migliori proprietari ottimizzano i loro annunci.',
+      cta: { label: 'Guarda i video', href: '#' },
+    },
+  ];
+
+  return (
+    <div className="mb-8 p-6 rounded-2xl bg-gradient-to-br from-primary-50 to-accent-50 border border-primary-100 relative">
+      <button
+        onClick={onDismiss}
+        className="absolute top-4 right-4 p-1 rounded-lg hover:bg-white/60 text-gray-400 hover:text-gray-600 transition-colors"
+        aria-label="Chiudi guida"
+      >
+        <X className="w-5 h-5" />
+      </button>
+
+      <h2 className="text-lg font-bold text-gray-800 mb-1">Benvenuto nella tua dashboard!</h2>
+      <p className="text-sm text-gray-600 mb-5">
+        Ecco alcuni suggerimenti per iniziare al meglio su rooMate.
+      </p>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {tips.map((tip, i) => (
+          <div key={i} className="bg-white/80 backdrop-blur-sm rounded-xl p-4 flex flex-col">
+            <div className="w-10 h-10 rounded-lg bg-primary-100 text-primary-600 flex items-center justify-center mb-3">
+              {tip.icon}
+            </div>
+            <h3 className="font-semibold text-gray-800 text-sm mb-1">{tip.title}</h3>
+            <p className="text-xs text-gray-500 mb-3 flex-1">{tip.desc}</p>
+            <Link
+              href={tip.cta.href}
+              className="inline-flex items-center gap-1 text-sm font-semibold text-primary-600 hover:text-primary-700"
+            >
+              {tip.cta.label}
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function MyListingsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -48,6 +111,24 @@ export default function MyListingsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    // Show onboarding for first-time visitors
+    try {
+      const dismissed = localStorage.getItem('roommate_dashboard_onboarding_dismissed');
+      if (!dismissed) {
+        setShowOnboarding(true);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  const dismissOnboarding = () => {
+    setShowOnboarding(false);
+    try {
+      localStorage.setItem('roommate_dashboard_onboarding_dismissed', '1');
+    } catch { /* ignore */ }
+  };
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -145,6 +226,9 @@ export default function MyListingsPage() {
           Nuovo annuncio
         </Link>
       </div>
+
+      {/* First-time onboarding helper */}
+      {showOnboarding && <OnboardingHelper onDismiss={dismissOnboarding} />}
 
       {error && (
         <div className="mb-6 p-3 bg-red-50 rounded-lg flex items-center gap-2 text-red-700 text-sm">
@@ -305,6 +389,22 @@ export default function MyListingsPage() {
             );
           })}
         </div>
+      )}
+
+      {/* Appointment Queue Section */}
+      {listings.length > 0 && (
+        <section className="mt-10">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-accent-100 flex items-center justify-center">
+              <Users className="w-4 h-4 text-accent-600" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-800">Candidati in coda</h2>
+          </div>
+          <p className="text-sm text-gray-500 mb-4">
+            rooMate ti mostra max 4 candidati alla volta per ogni annuncio. Gestiscili per far avanzare la coda.
+          </p>
+          <AppointmentQueueDemo />
+        </section>
       )}
     </div>
   );

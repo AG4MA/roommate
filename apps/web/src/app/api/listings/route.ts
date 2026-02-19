@@ -10,8 +10,8 @@ export async function GET(request: Request) {
 
   // Parse query parameters
   const city = searchParams.get('city');
-  const priceMin = searchParams.get('priceMin');
-  const priceMax = searchParams.get('priceMax');
+  const priceMin = searchParams.get('priceMin') || searchParams.get('minPrice');
+  const priceMax = searchParams.get('priceMax') || searchParams.get('maxPrice');
   const roomType = searchParams.get('roomType');
   const mine = searchParams.get('mine') === 'true';
   const page = parseInt(searchParams.get('page') || '1');
