@@ -88,7 +88,7 @@ export async function POST(request: Request) {
     for (const listing of expiringListings) {
       console.log(
         `[Expiry Warning] Listing "${listing.title}" (${listing.id}) expires at ${listing.expiresAt?.toISOString()}. ` +
-        `Landlord: ${listing.landlord.email}`
+        `Landlord: ${listing.landlord?.email}`
       );
     }
 

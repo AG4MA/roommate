@@ -4,7 +4,7 @@ import { prisma } from '@roommate/database';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
-const MAX_ACTIVE_INTERESTS = 6;
+const MAX_ACTIVE_INTERESTS = 3;
 
 interface InterestData {
   id: string;
@@ -75,16 +75,30 @@ export async function POST(
       );
     }
 
-    // Check if listing exists and is active
+    // Check if listing exists and is active or queue_full (for waiting list)
     const listing = await prisma.listing.findUnique({
       where: { id: listingId },
       select: { id: true, status: true, landlordId: true },
     });
 
-    if (!listing || listing.status !== 'ACTIVE') {
+    if (!listing || !['ACTIVE', 'QUEUE_FULL'].includes(listing.status)) {
       return NextResponse.json<ApiResponse<null>>(
         { success: false, error: 'Annuncio non trovato o non disponibile' },
         { status: 404 }
+      );
+    }
+
+    // Check if user is blocked due to no-shows
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { noShowCount: true, blockedUntil: true },
+    });
+
+    if (user?.blockedUntil && new Date(user.blockedUntil) > new Date()) {
+      const until = new Date(user.blockedUntil).toLocaleDateString('it-IT');
+      return NextResponse.json<ApiResponse<null>>(
+        { success: false, error: `Account bloccato fino al ${until} per mancate presenze` },
+        { status: 403 }
       );
     }
 
@@ -187,6 +201,17 @@ export async function POST(
       },
     });
 
+    // When queue reaches 3 active, set listing to QUEUE_FULL
+    if (!isWaiting) {
+      const newActiveCount = activeCount + 1;
+      if (newActiveCount >= MAX_ACTIVE_INTERESTS) {
+        await prisma.listing.update({
+          where: { id: listingId },
+          data: { status: 'QUEUE_FULL' },
+        });
+      }
+    }
+
     const data: InterestData = {
       id: interest.id,
       status: interest.status,
@@ -273,8 +298,18 @@ export async function DELETE(
             position: interest.position,
           },
         });
+      }
 
-        // TODO: Send notification to promoted user (Phase 7)
+      // Check if listing should go back to ACTIVE (fewer than 3 active interests)
+      const remainingActive = await prisma.interest.count({
+        where: { listingId, status: 'ACTIVE' },
+      });
+
+      if (remainingActive < MAX_ACTIVE_INTERESTS) {
+        await prisma.listing.update({
+          where: { id: listingId },
+          data: { status: 'ACTIVE' },
+        });
       }
     }
 
@@ -337,7 +372,7 @@ export async function GET(
 
     const data = {
       canExpress: !userInterest && activeCount < MAX_ACTIVE_INTERESTS,
-      isOnWaitlist: activeCount >= MAX_ACTIVE_INTERESTS && !userInterest,
+      queueFull: activeCount >= MAX_ACTIVE_INTERESTS,
       activeCount,
       waitingCount,
       maxActive: MAX_ACTIVE_INTERESTS,

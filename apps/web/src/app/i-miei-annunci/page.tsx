@@ -9,7 +9,7 @@ import {
   MoreVertical, Pencil, Trash2, Pause, Play, AlertCircle,
   X, Lightbulb, BookOpen, Video, ArrowRight, Users
 } from 'lucide-react';
-import { AppointmentQueueDemo } from '@/components/listing/AppointmentQueue';
+import { AppointmentQueue } from '@/components/listing/AppointmentQueue';
 
 interface MyListing {
   id: string;
@@ -34,6 +34,7 @@ const statusLabels: Record<string, { label: string; color: string }> = {
   RENTED: { label: 'Affittato', color: 'bg-blue-100 text-blue-700' },
   ARCHIVED: { label: 'Archiviato', color: 'bg-gray-100 text-gray-500' },
   EXPIRED: { label: 'Scaduto', color: 'bg-red-100 text-red-600' },
+  QUEUE_FULL: { label: 'Coda piena', color: 'bg-amber-100 text-amber-700' },
 };
 
 const roomTypeLabels: Record<string, string> = {
@@ -391,19 +392,39 @@ export default function MyListingsPage() {
         </div>
       )}
 
-      {/* Appointment Queue Section */}
-      {listings.length > 0 && (
-        <section className="mt-10">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-accent-100 flex items-center justify-center">
-              <Users className="w-4 h-4 text-accent-600" />
+      {/* Appointment Queue per listing */}
+      {listings.filter(l => ['ACTIVE', 'QUEUE_FULL'].includes(l.status)).length > 0 && (
+        <section className="mt-10 space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
+              <Users className="w-4 h-4 text-purple-600" />
             </div>
-            <h2 className="text-xl font-bold text-gray-800">Candidati in coda</h2>
+            <div>
+              <h2 className="text-xl font-bold text-gray-800">Candidati in coda</h2>
+              <p className="text-sm text-gray-500">Max 3 interessati per annuncio. Gestiscili per far avanzare la coda.</p>
+            </div>
           </div>
-          <p className="text-sm text-gray-500 mb-4">
-            rooMate ti mostra max 4 candidati alla volta per ogni annuncio. Gestiscili per far avanzare la coda.
-          </p>
-          <AppointmentQueueDemo />
+          {listings
+            .filter(l => ['ACTIVE', 'QUEUE_FULL'].includes(l.status))
+            .map(listing => (
+              <div key={listing.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
+                  <div className="w-8 h-8 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
+                    {listing.images[0] ? (
+                      <img src={listing.images[0].url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <MapPin className="w-4 h-4 m-2 text-gray-400" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-gray-800 truncate text-sm">{listing.title || 'Senza titolo'}</p>
+                    <p className="text-xs text-gray-500">{listing.city} · €{listing.price}/mese</p>
+                  </div>
+                </div>
+                <AppointmentQueue listingId={listing.id} onStatusChange={fetchListings} />
+              </div>
+            ))
+          }
         </section>
       )}
     </div>

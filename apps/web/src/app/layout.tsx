@@ -5,6 +5,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { AnalyticsTracker } from '@/components/layout/AnalyticsTracker';
+import { FeedbackButton } from '@/components/layout/FeedbackButton';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -30,6 +31,7 @@ export default function RootLayout({
               {children}
             </main>
             <Footer />
+            <FeedbackButton />
           </div>
         </AuthProvider>
       </body>

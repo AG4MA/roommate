@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { TenantProfileCard } from '@/components/room/TenantProfileCard';
 import {
   Calendar,
@@ -27,32 +29,58 @@ const slotTypeLabels: Record<string, string> = {
 };
 
 export default function PrenotazioniPage() {
+  const { data: session, status: authStatus } = useSession();
+  const router = useRouter();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [acting, setActing] = useState<string | null>(null);
+
+  const fetchBookings = async () => {
+    try {
+      const res = await fetch('/api/bookings');
+      const json: ApiResponse<Booking[]> = await res.json();
+      if (json.success && json.data) {
+        setBookings(json.data);
+      } else {
+        setBookings([]);
+      }
+    } catch (err) {
+      setError('Errore nel caricamento delle prenotazioni');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function fetchBookings() {
-      try {
-        // TODO: Replace with session user ID (Phase 1)
-        // For now, try to fetch all bookings for the first landlord found
-        const res = await fetch('/api/bookings?userId=demo&role=landlord');
-        const json: ApiResponse<Booking[]> = await res.json();
-
-        if (json.success && json.data) {
-          setBookings(json.data);
-        } else {
-          // If no auth, show empty state
-          setBookings([]);
-        }
-      } catch (err) {
-        setError('Errore nel caricamento delle prenotazioni');
-      } finally {
-        setLoading(false);
-      }
+    if (authStatus === 'unauthenticated') {
+      router.push('/login');
+      return;
     }
-    fetchBookings();
-  }, []);
+    if (authStatus === 'authenticated') {
+      fetchBookings();
+    }
+  }, [authStatus, router]);
+
+  const handleAction = async (bookingId: string, newStatus: 'CONFIRMED' | 'CANCELLED' | 'NO_SHOW') => {
+    setActing(`${bookingId}-${newStatus}`);
+    try {
+      const res = await fetch('/api/bookings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId, status: newStatus }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        await fetchBookings();
+      } else {
+        alert(json.error || 'Errore');
+      }
+    } catch {
+      alert('Errore di rete');
+    }
+    setActing(null);
+  };
 
   if (loading) {
     return (
@@ -151,13 +179,33 @@ export default function PrenotazioniPage() {
                 {/* Action Buttons */}
                 {booking.status === 'PENDING' && (
                   <div className="px-6 pb-6 flex gap-3">
-                    <button className="flex-1 py-3 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold flex items-center justify-center gap-2 transition-colors">
-                      <CheckCircle className="w-5 h-5" />
+                    <button
+                      onClick={() => handleAction(booking.id, 'CONFIRMED')}
+                      disabled={acting === `${booking.id}-CONFIRMED`}
+                      className="flex-1 py-3 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                    >
+                      {acting === `${booking.id}-CONFIRMED` ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
                       Accetta
                     </button>
-                    <button className="flex-1 py-3 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-700 font-semibold flex items-center justify-center gap-2 transition-colors">
-                      <XCircle className="w-5 h-5" />
+                    <button
+                      onClick={() => handleAction(booking.id, 'CANCELLED')}
+                      disabled={acting === `${booking.id}-CANCELLED`}
+                      className="flex-1 py-3 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-700 font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                    >
+                      {acting === `${booking.id}-CANCELLED` ? <Loader2 className="w-5 h-5 animate-spin" /> : <XCircle className="w-5 h-5" />}
                       Rifiuta
+                    </button>
+                  </div>
+                )}
+                {booking.status === 'CONFIRMED' && (
+                  <div className="px-6 pb-6 flex gap-3">
+                    <button
+                      onClick={() => handleAction(booking.id, 'NO_SHOW')}
+                      disabled={acting === `${booking.id}-NO_SHOW`}
+                      className="py-2 px-4 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 text-sm font-medium flex items-center gap-2 transition-colors disabled:opacity-50"
+                    >
+                      {acting === `${booking.id}-NO_SHOW` ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                      Non presentato
                     </button>
                   </div>
                 )}

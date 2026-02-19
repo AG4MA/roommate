@@ -1,17 +1,28 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Home, Mail, Lock, User, Loader2, AlertCircle, Building2, Search } from 'lucide-react';
+import { Home, Mail, Lock, User, Loader2, AlertCircle } from 'lucide-react';
 
 export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="w-8 h-8 text-primary-600 animate-spin" /></div>}>
+      <RegisterForm />
+    </Suspense>
+  );
+}
+
+function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || '/cerca';
+  // Role determined by context: ?role=landlord from /pubblica, otherwise tenant
+  const userType = searchParams.get('role') === 'landlord' ? 'landlord' : 'tenant';
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [userType, setUserType] = useState<'tenant' | 'landlord'>('tenant');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -47,7 +58,7 @@ export default function RegisterPage() {
         // Registration succeeded but auto-login failed — redirect to login
         router.push('/login');
       } else {
-        router.push('/cerca');
+        router.push(redirectTo);
         router.refresh();
       }
     } catch {
@@ -80,37 +91,6 @@ export default function RegisterPage() {
               {error}
             </div>
           )}
-
-          {/* Role Selection */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-3">Sono un...</label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setUserType('tenant')}
-                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-colors ${
-                  userType === 'tenant'
-                    ? 'border-primary-500 bg-primary-50 text-primary-700'
-                    : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                }`}
-              >
-                <Search className="w-6 h-6" />
-                <span className="font-medium text-sm">Cerco stanza</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setUserType('landlord')}
-                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-colors ${
-                  userType === 'landlord'
-                    ? 'border-primary-500 bg-primary-50 text-primary-700'
-                    : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                }`}
-              >
-                <Building2 className="w-6 h-6" />
-                <span className="font-medium text-sm">Affitto stanza</span>
-              </button>
-            </div>
-          </div>
 
           <div className="space-y-4">
             <div>

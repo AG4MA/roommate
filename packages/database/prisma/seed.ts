@@ -10,6 +10,8 @@ async function main() {
   const passwordHash = await bcrypt.hash('password123', 10);
 
   // Clean existing data
+  await prisma.certificationRequest.deleteMany();
+  await prisma.interest.deleteMany();
   await prisma.groupMembership.deleteMany();
   await prisma.housemateGroup.deleteMany();
   await prisma.message.deleteMany();
@@ -1682,8 +1684,84 @@ async function main() {
     },
   });
 
+  // ==================== INTERESTS (Queue demo) ====================
+
+  // Listing 1 (Anna Rossi — Porta Venezia): 3 active interests → QUEUE_FULL
+  await prisma.interest.create({
+    data: {
+      listingId: listing1.id,
+      tenantId: tenant1.id,
+      status: 'ACTIVE',
+      position: 1,
+      score: 92,
+      schedulingApproved: true,
+    },
+  });
+  await prisma.interest.create({
+    data: {
+      listingId: listing1.id,
+      tenantId: tenant2.id,
+      status: 'ACTIVE',
+      position: 2,
+      score: 78,
+      schedulingApproved: false,
+    },
+  });
+  await prisma.interest.create({
+    data: {
+      listingId: listing1.id,
+      tenantId: tenant3.id,
+      status: 'ACTIVE',
+      position: 3,
+      score: 85,
+      schedulingApproved: false,
+    },
+  });
+  // Mark listing1 as QUEUE_FULL
+  await prisma.listing.update({
+    where: { id: listing1.id },
+    data: { status: 'QUEUE_FULL' },
+  });
+
+  // Listing 2 (landlord1): 1 active interest, still ACTIVE
+  await prisma.interest.create({
+    data: {
+      listingId: listing2.id,
+      tenantId: tenant4.id,
+      status: 'ACTIVE',
+      position: 1,
+      score: 88,
+      schedulingApproved: false,
+    },
+  });
+
+  // Listing 3 (landlord2): 2 active + 1 waiting = WAITING tenant visible in queue
+  await prisma.interest.create({
+    data: {
+      listingId: listing3.id,
+      tenantId: tenant1.id,
+      status: 'ACTIVE',
+      position: 1,
+      score: 95,
+      schedulingApproved: true,
+    },
+  });
+  await prisma.interest.create({
+    data: {
+      listingId: listing3.id,
+      tenantId: tenant5.id,
+      status: 'ACTIVE',
+      position: 2,
+      score: 82,
+      schedulingApproved: false,
+    },
+  });
+
   console.log('Seed completed successfully!');
-  console.log(`Created: 3 landlords, 8 tenants (5 + 3 searchers), 50 listings (44 SINGLE, 20 Milano extras €500-1000 w/ wifi), visit slots, bookings, conversations, favorites, reviews, 1 housemate group`);
+  console.log(`Created: 3 landlords, 8 tenants, 50 listings, visit slots, bookings, conversations, favorites, reviews, 1 group, 6 interests (queue demo)`);
+  console.log('  → listing1: QUEUE_FULL (3 active interests)');
+  console.log('  → listing2: ACTIVE (1 active interest)');
+  console.log('  → listing3: ACTIVE (2 active interests)');
 }
 
 main()

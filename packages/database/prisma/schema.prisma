@@ -26,6 +26,10 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  // No-show tracking
+  noShowCount   Int       @default(0)
+  blockedUntil  DateTime?
+
   // Relations
   landlordProfile  LandlordProfile?
   tenantProfile    TenantProfile?
@@ -37,6 +41,8 @@ model User {
   interests        Interest[]
   wishes           Wish[]
   groupMemberships GroupMembership[]
+  certificationRequests CertificationRequest[]
+  feedbacks        Feedback[]
 
   @@map("users")
 }
@@ -287,6 +293,7 @@ model Roommate {
 enum ListingStatus {
   DRAFT
   ACTIVE
+  QUEUE_FULL  // 3 interested tenants — hidden from search
   PAUSED
   RENTED
   ARCHIVED
@@ -470,12 +477,15 @@ model Interest {
   groupId     String?
   group       HousemateGroup? @relation(fields: [groupId], references: [id])
 
-  status      InterestStatus @default(ACTIVE)
-  position    Int            @default(0) // 1-6 = active, 7+ = waiting list
-  score       Int            @default(0) // engagement score
+  status              InterestStatus @default(ACTIVE)
+  position            Int            @default(0) // 1-3 = active queue
+  score               Int            @default(0) // engagement score
+  schedulingApproved  Boolean        @default(false) // landlord approved visit scheduling
 
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
+
+  certificationRequests CertificationRequest[]
 
   @@unique([listingId, tenantId])
   @@index([listingId, status, position])
@@ -484,10 +494,47 @@ model Interest {
 }
 
 enum InterestStatus {
-  ACTIVE      // Currently in top 6
+  ACTIVE      // Currently in top 3
   WAITING     // On waiting list
+  REMOVED     // Landlord removed from queue
   WITHDRAWN   // User withdrew interest
   EXPIRED     // Listing expired
+}
+
+// ==================== CERTIFICATION REQUESTS ====================
+
+model CertificationRequest {
+  id          String               @id @default(cuid())
+  interestId  String
+  interest    Interest             @relation(fields: [interestId], references: [id], onDelete: Cascade)
+  tenantId    String
+  tenant      User                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  type        CertificationType
+  status      CertificationStatus  @default(PENDING)
+  documentUrl String?              // uploaded proof
+  note        String?              // landlord note
+
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@unique([interestId, type])
+  @@map("certification_requests")
+}
+
+enum CertificationType {
+  EMPLOYMENT_CONTRACT  // Certifica contratto di lavoro
+  INCOME_PROOF         // Certifica reddito
+  STUDENT_ENROLLMENT   // Certifica iscrizione universitaria
+  GUARANTOR            // Certifica garante
+  ID_DOCUMENT          // Documento d'identità
+}
+
+enum CertificationStatus {
+  PENDING
+  SUBMITTED
+  VERIFIED
+  REJECTED
 }
 
 // ==================== WISH SYSTEM (Saved Searches) ====================
@@ -572,5 +619,20 @@ model GroupMembership {
   @@unique([groupId, userId])
   @@index([userId, status])
   @@map("group_memberships")
+}
+
+// ==================== FEEDBACK ====================
+
+model Feedback {
+  id        String   @id @default(cuid())
+  message   String
+  rating    Int?     // 1-5 stars (optional)
+  page      String?  // URL path where feedback was submitted
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@map("feedbacks")
 }
 

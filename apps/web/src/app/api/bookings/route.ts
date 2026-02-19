@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import type { ApiResponse, Booking } from '@roommate/shared';
 import { createBookingSchema, calculateAge } from '@roommate/shared';
 import { prisma } from '@roommate/database';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 // Helper to build a TenantProfileCard from Prisma user+profile
 function buildTenantCard(tenant: any) {
@@ -235,5 +237,97 @@ export async function GET(request: Request) {
       error: 'Error fetching bookings',
     };
     return NextResponse.json(response, { status: 500 });
+  }
+}
+
+// PATCH — update booking status (confirm, cancel, complete, no_show)
+export async function PATCH(request: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json<ApiResponse<null>>(
+        { success: false, error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json();
+    const { bookingId, status } = body as { bookingId: string; status: string };
+
+    const validStatuses = ['CONFIRMED', 'CANCELLED', 'COMPLETED', 'NO_SHOW'];
+    if (!bookingId || !validStatuses.includes(status)) {
+      return NextResponse.json<ApiResponse<null>>(
+        { success: false, error: 'bookingId e status valido richiesti' },
+        { status: 400 }
+      );
+    }
+
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { listing: { select: { landlordId: true } } },
+    });
+
+    if (!booking) {
+      return NextResponse.json<ApiResponse<null>>(
+        { success: false, error: 'Prenotazione non trovata' },
+        { status: 404 }
+      );
+    }
+
+    // Only landlord can confirm/complete/no_show; both can cancel
+    const isLandlord = booking.listing.landlordId === session.user.id;
+    const isTenant = booking.tenantId === session.user.id;
+
+    if (status === 'CANCELLED' && !isLandlord && !isTenant) {
+      return NextResponse.json<ApiResponse<null>>(
+        { success: false, error: 'Non autorizzato' },
+        { status: 403 }
+      );
+    }
+
+    if (['CONFIRMED', 'COMPLETED', 'NO_SHOW'].includes(status) && !isLandlord) {
+      return NextResponse.json<ApiResponse<null>>(
+        { success: false, error: 'Solo il proprietario può confermare/completare le prenotazioni' },
+        { status: 403 }
+      );
+    }
+
+    const updateData: Record<string, unknown> = { status };
+    if (status === 'CONFIRMED') updateData.confirmedAt = new Date();
+    if (status === 'CANCELLED') updateData.cancelledAt = new Date();
+
+    await prisma.booking.update({
+      where: { id: bookingId },
+      data: updateData,
+    });
+
+    // Handle no-show: increment counter, block if ≥ 3
+    if (status === 'NO_SHOW') {
+      const updatedUser = await prisma.user.update({
+        where: { id: booking.tenantId },
+        data: { noShowCount: { increment: 1 } },
+      });
+
+      if (updatedUser.noShowCount >= 3 && !updatedUser.blockedUntil) {
+        const blockedUntil = new Date();
+        blockedUntil.setMonth(blockedUntil.getMonth() + 3);
+        await prisma.user.update({
+          where: { id: booking.tenantId },
+          data: { blockedUntil },
+        });
+      }
+    }
+
+    return NextResponse.json<ApiResponse<null>>({
+      success: true,
+      data: null,
+      message: `Prenotazione aggiornata a ${status}`,
+    });
+  } catch (error) {
+    console.error('Error updating booking:', error);
+    return NextResponse.json<ApiResponse<null>>(
+      { success: false, error: 'Errore durante l\'aggiornamento' },
+      { status: 500 }
+    );
   }
 }

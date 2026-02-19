@@ -125,7 +125,7 @@ const LISTING_STEPS = [
 
 type PublisherType = 'private' | 'company' | 'sublet';
 type RegistrationMode = 'registered' | 'anonymous';
-type OnboardingPhase = 'reg-choice' | 'type' | 'declarations' | 'company-info' | 'done';
+type OnboardingPhase = 'reg-choice' | 'setup' | 'done';
 
 // ---- Phase 0: Registration choice ----
 
@@ -168,88 +168,138 @@ function OnboardingRegChoice({ onSelect }: { onSelect: (mode: RegistrationMode) 
   );
 }
 
-// ---- Phase 1: Type selection ----
+// ---- Phase 1: Inline setup (type + declarations + company info) ----
 
 const TYPE_OPTIONS: { value: PublisherType; icon: React.ReactNode; label: string; desc: string }[] = [
-  { value: 'private', icon: <User className="w-8 h-8" />, label: 'Privato', desc: 'Sei un privato cittadino che affitta una stanza nel proprio appartamento' },
-  { value: 'company', icon: <Building2 className="w-8 h-8" />, label: 'Azienda', desc: "Sei un'azienda o agenzia che gestisce immobili per affitto a stanze" },
-  { value: 'sublet', icon: <Repeat2 className="w-8 h-8" />, label: 'Subaffitto', desc: 'Sei un inquilino e vuoi subaffittare la tua stanza a qualcun altro' },
+  { value: 'private', icon: <User className="w-6 h-6" />, label: 'Privato', desc: 'Privato cittadino' },
+  { value: 'company', icon: <Building2 className="w-6 h-6" />, label: 'Azienda', desc: 'Agenzia / impresa' },
+  { value: 'sublet', icon: <Repeat2 className="w-6 h-6" />, label: 'Subaffitto', desc: 'Inquilino che subaffitta' },
 ];
 
-function OnboardingTypeStep({ onSelect, onBack, regMode }: { onSelect: (t: PublisherType) => void; onBack: () => void; regMode: RegistrationMode }) {
-  const options = regMode === 'anonymous' ? TYPE_OPTIONS.filter((o) => o.value !== 'company') : TYPE_OPTIONS;
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
-      <h1 className="text-3xl font-bold text-gray-800 mb-2 text-center">Tipo di inserzionista</h1>
-      <p className="text-gray-500 mb-10 text-center max-w-md">Prima di tutto, dicci chi sei. Il processo sar&agrave; adattato alle tue esigenze.</p>
-      <div className={`grid grid-cols-1 ${options.length === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-4 w-full max-w-2xl`}>
-        {options.map((opt) => (
-          <button key={opt.value} onClick={() => onSelect(opt.value)} className="group relative flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-gray-200 bg-white hover:border-primary-400 hover:shadow-lg transition-all text-center">
-            <div className="w-16 h-16 rounded-2xl bg-primary-50 group-hover:bg-primary-100 flex items-center justify-center text-primary-600 transition-colors">{opt.icon}</div>
-            <span className="text-lg font-semibold text-gray-800">{opt.label}</span>
-            <span className="text-sm text-gray-500 leading-snug">{opt.desc}</span>
-          </button>
-        ))}
-      </div>
-      <button onClick={onBack} className="mt-8 flex items-center gap-2 px-6 py-3 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors">
-        <ChevronLeft className="w-5 h-5" />Indietro
-      </button>
-    </div>
-  );
-}
-
-// ---- Phase 2: Declarations ----
-
-function OnboardingDeclarations({ publisherType, onAccept, onBack }: { publisherType: PublisherType; onAccept: () => void; onBack: () => void }) {
+function OnboardingSetup({
+  regMode,
+  companyName,
+  vatNumber,
+  onChangeCompany,
+  onDone,
+  onBack,
+}: {
+  regMode: RegistrationMode;
+  companyName: string;
+  vatNumber: string;
+  onChangeCompany: (u: { companyName?: string; vatNumber?: string }) => void;
+  onDone: (type: PublisherType) => void;
+  onBack: () => void;
+}) {
+  const { data: session } = useSession();
+  const [selected, setSelected] = useState<PublisherType | null>(null);
   const [accepted, setAccepted] = useState<[boolean, boolean]>([false, false]);
   const allAccepted = accepted[0] && accepted[1];
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
-      <h1 className="text-2xl font-bold text-gray-800 mb-2 text-center">Regole della piattaforma</h1>
-      <p className="text-gray-500 mb-8 text-center max-w-lg">rooMate &egrave; dedicata alla ricerca di <strong>stanze singole</strong> in appartamenti condivisi. Prima di procedere, conferma di aver letto e accettato le seguenti condizioni.</p>
-      <div className="w-full max-w-lg space-y-4 mb-8">
-        <label className="flex items-start gap-3 p-4 rounded-xl border-2 border-gray-200 bg-white cursor-pointer hover:border-primary-300 transition-colors">
-          <input type="checkbox" checked={accepted[0]} onChange={() => setAccepted([!accepted[0], accepted[1]])} className="mt-1 w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1"><AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" /><span className="font-semibold text-gray-800">Tipologia di stanze</span></div>
-            <p className="text-sm text-gray-600 leading-relaxed">Dichiaro di aver compreso che su rooMate <strong>non &egrave; possibile pubblicare annunci per stanze doppie o monolocali</strong>. La piattaforma &egrave; dedicata esclusivamente a <strong>stanze singole</strong> in appartamenti condivisi.</p>
-          </div>
-        </label>
-        <label className="flex items-start gap-3 p-4 rounded-xl border-2 border-gray-200 bg-white cursor-pointer hover:border-primary-300 transition-colors">
-          <input type="checkbox" checked={accepted[1]} onChange={() => setAccepted([accepted[0], !accepted[1]])} className="mt-1 w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1"><ShieldAlert className="w-5 h-5 text-red-500 shrink-0" /><span className="font-semibold text-gray-800">Identit&agrave; veritiera</span></div>
-            <p className="text-sm text-gray-600 leading-relaxed">Dichiaro che le informazioni fornite sono veritiere. Comprendo che <strong>chi si finge privato ma &egrave; in realt&agrave; un&apos;azienda verr&agrave; eliminato permanentemente</strong> dalla piattaforma e non potr&agrave; pi&ugrave; farne parte.</p>
-          </div>
-        </label>
-      </div>
-      <div className="flex items-center gap-4">
-        <button onClick={onBack} className="flex items-center gap-2 px-6 py-3 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors"><ChevronLeft className="w-5 h-5" />Indietro</button>
-        <button onClick={onAccept} disabled={!allAccepted} className="flex items-center gap-2 px-8 py-3 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"><BadgeCheck className="w-5 h-5" />Accetto e continuo</button>
-      </div>
-    </div>
-  );
-}
+  const options = regMode === 'anonymous' ? TYPE_OPTIONS.filter((o) => o.value !== 'company') : TYPE_OPTIONS;
+  const companyValid = companyName.trim().length >= 2 && /^[A-Z]{2}\d{9,12}$/.test(vatNumber.replace(/\s/g, '').toUpperCase());
 
-// ---- Phase 3: Company info ----
+  const canProceed = selected && allAccepted && (selected !== 'company' || (companyValid && session));
 
-function OnboardingCompanyInfo({ companyName, vatNumber, onChange, onNext, onBack }: { companyName: string; vatNumber: string; onChange: (u: { companyName?: string; vatNumber?: string }) => void; onNext: () => void; onBack: () => void }) {
-  const { data: session } = useSession();
-  const valid = companyName.trim().length >= 2 && /^[A-Z]{2}\d{9,12}$/.test(vatNumber.replace(/\s/g, '').toUpperCase());
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
-      <div className="w-16 h-16 rounded-2xl bg-primary-50 flex items-center justify-center text-primary-600 mb-4"><Building2 className="w-8 h-8" /></div>
-      <h1 className="text-2xl font-bold text-gray-800 mb-2 text-center">Profilo azienda</h1>
-      <p className="text-gray-500 mb-8 text-center max-w-md">Per pubblicare come azienda &egrave; necessario fornire i dati fiscali.{!session && <span className="block mt-2 text-primary-600 font-medium">Dovrai anche effettuare la registrazione per continuare.</span>}</p>
-      <div className="w-full max-w-md space-y-4 mb-8">
-        <div><label className="block text-sm font-medium text-gray-700 mb-1">Ragione sociale</label><input type="text" value={companyName} onChange={(e) => onChange({ companyName: e.target.value })} placeholder="Es. Immobiliare Rossi S.r.l." className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" /></div>
-        <div><label className="block text-sm font-medium text-gray-700 mb-1">Partita IVA</label><input type="text" value={vatNumber} onChange={(e) => onChange({ vatNumber: e.target.value })} placeholder="Es. IT01234567890" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none font-mono" /><p className="text-xs text-gray-400 mt-1">Formato: codice paese (2 lettere) + numeri</p></div>
-        {!session && <div className="p-4 rounded-xl bg-amber-50 border border-amber-200"><p className="text-sm text-amber-800"><strong>Registrazione obbligatoria:</strong> I profili aziendali devono registrarsi prima di pubblicare un annuncio.</p><a href="/registrati" className="inline-block mt-2 text-sm font-semibold text-primary-600 hover:text-primary-700">Registrati ora &rarr;</a></div>}
+    <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 py-12">
+      <h1 className="text-3xl font-bold text-gray-800 mb-2 text-center">Chi sei?</h1>
+      <p className="text-gray-500 mb-8 text-center max-w-md">Seleziona il tipo di inserzionista. Il processo sar&agrave; adattato alle tue esigenze.</p>
+
+      {/* Type cards — compact row */}
+      <div className={`grid grid-cols-1 ${options.length === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-3 w-full max-w-2xl mb-6`}>
+        {options.map((opt) => {
+          const active = selected === opt.value;
+          return (
+            <button
+              key={opt.value}
+              onClick={() => { setSelected(opt.value); setAccepted([false, false]); }}
+              className={`relative flex items-center gap-3 p-4 rounded-2xl border-2 transition-all text-left ${
+                active
+                  ? 'border-primary-500 bg-primary-50 shadow-md'
+                  : selected
+                    ? 'border-gray-100 bg-gray-50 opacity-60 hover:opacity-90'
+                    : 'border-gray-200 bg-white hover:border-primary-300 hover:shadow-md'
+              }`}
+            >
+              <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${active ? 'bg-primary-600 text-white' : 'bg-primary-50 text-primary-600'}`}>{opt.icon}</div>
+              <div className="min-w-0">
+                <span className="block text-sm font-semibold text-gray-800">{opt.label}</span>
+                <span className="block text-xs text-gray-500 leading-snug">{opt.desc}</span>
+              </div>
+              {active && <CheckCircle className="absolute top-2 right-2 w-5 h-5 text-primary-600" />}
+            </button>
+          );
+        })}
       </div>
-      <div className="flex items-center gap-4">
-        <button onClick={onBack} className="flex items-center gap-2 px-6 py-3 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors"><ChevronLeft className="w-5 h-5" />Indietro</button>
-        <button onClick={onNext} disabled={!valid || !session} className="flex items-center gap-2 px-8 py-3 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors">Continua<ChevronRight className="w-5 h-5" /></button>
-      </div>
+
+      {/* Declarations — appear when type selected */}
+      {selected && (
+        <div className="w-full max-w-2xl space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="border-t border-gray-100 pt-6">
+            <p className="text-sm font-semibold text-gray-700 mb-3">Conferma le regole della piattaforma</p>
+            <div className="space-y-3">
+              <label className="flex items-start gap-3 p-3.5 rounded-xl border-2 border-gray-200 bg-white cursor-pointer hover:border-primary-300 transition-colors">
+                <input type="checkbox" checked={accepted[0]} onChange={() => setAccepted([!accepted[0], accepted[1]])} className="mt-0.5 w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-0.5"><AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" /><span className="text-sm font-semibold text-gray-800">Solo stanze singole</span></div>
+                  <p className="text-xs text-gray-500 leading-relaxed">Su rooMate <strong>non si pubblicano stanze doppie o monolocali</strong>. Solo stanze singole in appartamenti condivisi.</p>
+                </div>
+              </label>
+              <label className="flex items-start gap-3 p-3.5 rounded-xl border-2 border-gray-200 bg-white cursor-pointer hover:border-primary-300 transition-colors">
+                <input type="checkbox" checked={accepted[1]} onChange={() => setAccepted([accepted[0], !accepted[1]])} className="mt-0.5 w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-0.5"><ShieldAlert className="w-4 h-4 text-red-500 shrink-0" /><span className="text-sm font-semibold text-gray-800">Identit&agrave; veritiera</span></div>
+                  <p className="text-xs text-gray-500 leading-relaxed">Le informazioni sono veritiere. <strong>Chi si finge privato ma &egrave; un&apos;azienda verr&agrave; eliminato.</strong></p>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          {/* Company fields — inline when type=company */}
+          {selected === 'company' && allAccepted && (
+            <div className="border-t border-gray-100 pt-5 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <p className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2"><Building2 className="w-4 h-4 text-primary-600" />Dati aziendali</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Ragione sociale</label>
+                  <input type="text" value={companyName} onChange={(e) => onChangeCompany({ companyName: e.target.value })} placeholder="Es. Immobiliare Rossi S.r.l." className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Partita IVA</label>
+                  <input type="text" value={vatNumber} onChange={(e) => onChangeCompany({ vatNumber: e.target.value })} placeholder="IT01234567890" className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-mono focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" />
+                </div>
+              </div>
+              {!session && (
+                <div className="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200">
+                  <p className="text-xs text-amber-800"><strong>Registrazione obbligatoria</strong> per profili aziendali.</p>
+                  <a href="/registrati?role=landlord&redirect=/pubblica" className="inline-block mt-1 text-xs font-semibold text-primary-600 hover:text-primary-700">Registrati ora &rarr;</a>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div className="flex items-center justify-between pt-4">
+            <button onClick={onBack} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors">
+              <ChevronLeft className="w-4 h-4" />Indietro
+            </button>
+            <button
+              onClick={() => canProceed && onDone(selected!)}
+              disabled={!canProceed}
+              className="flex items-center gap-2 px-7 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              <BadgeCheck className="w-4 h-4" />Continua
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Back button when no type selected yet */}
+      {!selected && (
+        <button onClick={onBack} className="mt-6 flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors">
+          <ChevronLeft className="w-4 h-4" />Indietro
+        </button>
+      )}
     </div>
   );
 }
@@ -333,19 +383,26 @@ export default function PubblicaPage() {
   if (anonResult) return <AnonymousSuccess {...anonResult} />;
 
   if (onboardingPhase === 'reg-choice') {
-    return <OnboardingRegChoice onSelect={(mode) => { setRegMode(mode); trackAction('affitta_reg_choice', { mode }); setOnboardingPhase('type'); }} />;
+    return <OnboardingRegChoice onSelect={(mode) => { setRegMode(mode); trackAction('affitta_reg_choice', { mode }); setOnboardingPhase('setup'); }} />;
   }
 
-  if (onboardingPhase === 'type') {
-    return <OnboardingTypeStep regMode={regMode!} onSelect={(type) => { setPublisherType(type); setFormData((p) => ({ ...p, publisherType: type })); trackAction('affitta_type_selected', { type }); setOnboardingPhase('declarations'); }} onBack={() => setOnboardingPhase('reg-choice')} />;
-  }
-
-  if (onboardingPhase === 'declarations') {
-    return <OnboardingDeclarations publisherType={publisherType!} onAccept={() => { trackAction('affitta_declarations_accepted'); setOnboardingPhase(publisherType === 'company' ? 'company-info' : 'done'); }} onBack={() => setOnboardingPhase('type')} />;
-  }
-
-  if (onboardingPhase === 'company-info') {
-    return <OnboardingCompanyInfo companyName={formData.companyName || ''} vatNumber={formData.vatNumber || ''} onChange={(u) => setFormData((p) => ({ ...p, ...u }))} onNext={() => setOnboardingPhase('done')} onBack={() => setOnboardingPhase('declarations')} />;
+  if (onboardingPhase === 'setup') {
+    return (
+      <OnboardingSetup
+        regMode={regMode!}
+        companyName={formData.companyName || ''}
+        vatNumber={formData.vatNumber || ''}
+        onChangeCompany={(u) => setFormData((p) => ({ ...p, ...u }))}
+        onDone={(type) => {
+          setPublisherType(type);
+          setFormData((p) => ({ ...p, publisherType: type }));
+          trackAction('affitta_type_selected', { type });
+          trackAction('affitta_declarations_accepted');
+          setOnboardingPhase('done');
+        }}
+        onBack={() => setOnboardingPhase('reg-choice')}
+      />
+    );
   }
 
   if (publisherType === 'company' && (!session || session.user.role !== 'landlord')) {
@@ -474,7 +531,7 @@ export default function PubblicaPage() {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">{renderStep()}</div>
 
       <div className="flex justify-between items-center">
-        <button onClick={() => { if (currentStep === 0) setOnboardingPhase('declarations'); else handlePrev(); }} className="flex items-center gap-2 px-6 py-3 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors"><ChevronLeft className="w-5 h-5" />Indietro</button>
+        <button onClick={() => { if (currentStep === 0) setOnboardingPhase('setup'); else handlePrev(); }} className="flex items-center gap-2 px-6 py-3 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors"><ChevronLeft className="w-5 h-5" />Indietro</button>
         <div className="flex gap-3">
           {currentStep === LISTING_STEPS.length - 1 ? (
             <>

@@ -21,62 +21,72 @@ function computeMatchScore(
 ): number {
   let total = 0;
   let matched = 0;
+  let filterCount = 0; // meaningful user-chosen filters
 
   // Price range match
   const maxPrice = params.get('maxPrice');
-  if (maxPrice) {
+  const minPrice = params.get('minPrice');
+  if (maxPrice || minPrice) {
+    filterCount++;
     total += 25;
-    const max = Number(maxPrice);
-    if (room.price <= max) matched += 25;
-    else if (room.price <= max * 1.15) matched += 12; // within 15%
+    const max = maxPrice ? Number(maxPrice) : Infinity;
+    const min = minPrice ? Number(minPrice) : 0;
+    if (room.price >= min && room.price <= max) matched += 25;
+    else if (room.price <= max * 1.15 && room.price >= min * 0.85) matched += 12;
   }
 
-  // City match
+  // City match — always set by wizard, don't count as a "filter" for threshold
   const city = params.get('city');
   if (city) {
-    total += 20;
-    if (room.city.toLowerCase() === city.toLowerCase()) matched += 20;
+    total += 10;
+    if (room.city.toLowerCase() === city.toLowerCase()) matched += 10;
   }
 
-  // Room type match
+  // Room type — always SINGLE from wizard, don't count for threshold
   const roomType = params.get('roomType');
   if (roomType) {
-    total += 15;
-    if (room.roomType === roomType) matched += 15;
+    total += 5;
+    if (room.roomType === roomType) matched += 5;
   }
 
   // Gender preference match
   const gender = params.get('gender');
-  if (gender && gender !== 'ANY') {
-    total += 10;
-    // If listing has no gender preference or matches, it's a match
-    if (!room.preferences?.gender || room.preferences.gender === gender) matched += 10;
+  if (gender && gender !== 'any' && gender !== 'ANY') {
+    filterCount++;
+    total += 15;
+    if (!(room as any).preferences?.gender || (room as any).preferences.gender === gender) matched += 15;
   }
 
-  // Features match (wifi, furnished, privateBath)
+  // Roommate type
+  const roommateType = params.get('roommateType');
+  if (roommateType && roommateType !== 'mix') {
+    filterCount++;
+    total += 15;
+    // simplified: just add weight, always partial match for now
+    matched += 8;
+  }
+
+  // Features match
+  const featureParams = params.getAll('feature');
+  if (featureParams.length > 0) {
+    filterCount++;
+    const perFeature = 20 / featureParams.length;
+    featureParams.forEach((f) => {
+      total += perFeature;
+      if ((room.features as any)[f]) matched += perFeature;
+    });
+  }
+
+  // Legacy feature params
   const furnished = params.get('furnished');
-  if (furnished === 'true') {
-    total += 10;
-    if (room.features.furnished) matched += 10;
-  }
+  if (furnished === 'true') { filterCount++; total += 10; if (room.features.furnished) matched += 10; }
   const privateBath = params.get('privateBath');
-  if (privateBath === 'true') {
-    total += 10;
-    if (room.features.privateBath) matched += 10;
-  }
+  if (privateBath === 'true') { total += 10; if (room.features.privateBath) matched += 10; }
   const petsAllowed = params.get('petsAllowed');
-  if (petsAllowed === 'true') {
-    total += 5;
-    if (room.rules?.petsAllowed) matched += 5;
-  }
-  const smokingAllowed = params.get('smokingAllowed');
-  if (smokingAllowed === 'true') {
-    total += 5;
-    if (room.rules?.smokingAllowed) matched += 5;
-  }
+  if (petsAllowed === 'true') { total += 5; if ((room as any).rules?.petsAllowed) matched += 5; }
 
-  // If no filters applied, return -1 to indicate "no scoring"
-  if (total === 0) return -1;
+  // Need at least 2 meaningful user-chosen filters to show scoring
+  if (total === 0 || filterCount < 2) return -1;
 
   return Math.round((matched / total) * 100);
 }
@@ -153,7 +163,7 @@ export function SearchResults({ listings, loading }: SearchResultsProps) {
           <p className="text-gray-400 text-sm mt-1">Prova a modificare i filtri di ricerca</p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-5">
           {hasScores && (
             <p className="text-xs text-gray-400 flex items-center gap-1">
               <Sparkles className="w-3 h-3" />
@@ -172,9 +182,9 @@ export function SearchResults({ listings, loading }: SearchResultsProps) {
 function RoomCard({ room, matchScore }: { room: ListingCard; matchScore: number }) {
   return (
     <Link href={`/stanza/${room.id}`}>
-      <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden flex">
+      <div className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all overflow-hidden flex border border-gray-100">
         {/* Image */}
-        <div className="w-48 h-40 relative shrink-0 bg-gray-200">
+        <div className="w-52 h-44 relative shrink-0 bg-gray-200">
           {room.images.length > 0 && room.images[0].url !== '/placeholder.jpg' ? (
             <img
               src={room.images[0].url}
@@ -195,16 +205,16 @@ function RoomCard({ room, matchScore }: { room: ListingCard; matchScore: number 
         </div>
 
         {/* Content */}
-        <div className="flex-1 p-4">
+        <div className="flex-1 p-5">
           <div className="flex justify-between items-start">
-            <div>
-              <h3 className="font-semibold text-gray-800 mb-1">{room.title}</h3>
-              <p className="text-sm text-gray-500 flex items-center gap-1">
-                <MapPin className="w-4 h-4" />
-                {room.address}
+            <div className="min-w-0 flex-1 mr-3">
+              <h3 className="font-semibold text-gray-800 mb-1 truncate">{room.title}</h3>
+              <p className="text-sm text-gray-500 flex items-center gap-1 truncate">
+                <MapPin className="w-4 h-4 shrink-0" />
+                {room.neighborhood || room.city}
               </p>
             </div>
-            <div className="text-right">
+            <div className="text-right shrink-0">
               <p className="text-xl font-bold text-primary-600">€{room.price}</p>
               <p className="text-xs text-gray-500">/mese</p>
             </div>

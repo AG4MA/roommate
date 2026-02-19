@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Calendar, Clock, Video, MapPin, MessageCircle, CheckCircle } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { Calendar, Clock, Video, MessageCircle, CheckCircle, Loader2 } from 'lucide-react';
 
 interface Slot {
   date: string;
@@ -26,17 +27,61 @@ interface BookingWidgetProps {
   };
   availableSlots: Slot[];
   landlord: Landlord;
+  listingId: string;
 }
 
-export function BookingWidget({ room, availableSlots, landlord }: BookingWidgetProps) {
+export function BookingWidget({ room, availableSlots, landlord, listingId }: BookingWidgetProps) {
+  const { data: session } = useSession();
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [booking, setBooking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleBooking = () => {
-    if (selectedSlot) {
-      setShowConfirmation(true);
-      // In production, this would call the API to create the booking
+  const handleBooking = async () => {
+    if (!selectedSlot) return;
+    if (!session?.user?.id) {
+      window.location.href = '/login?redirect=' + encodeURIComponent(`/stanza/${listingId}`);
+      return;
     }
+
+    setBooking(true);
+    setError(null);
+
+    try {
+      // Find the slot id by matching date+time from the available slots
+      const slotRes = await fetch(`/api/listings/${listingId}/slots`);
+      const slotData = await slotRes.json();
+      const matchingSlot = slotData.data?.find(
+        (s: { date: string; startTime: string }) =>
+          s.date === selectedSlot.date && s.startTime === selectedSlot.time
+      );
+
+      if (!matchingSlot) {
+        setError('Slot non più disponibile');
+        setBooking(false);
+        return;
+      }
+
+      const res = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          slotId: matchingSlot.id,
+          tenantId: session.user.id,
+          message: '',
+        }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setShowConfirmation(true);
+      } else {
+        setError(data.error || 'Errore durante la prenotazione');
+      }
+    } catch {
+      setError('Errore di rete');
+    }
+    setBooking(false);
   };
 
   return (
@@ -136,16 +181,20 @@ export function BookingWidget({ room, availableSlots, landlord }: BookingWidgetP
             )}
 
             {/* Action Buttons */}
+            {error && (
+              <p className="text-sm text-red-600 mb-2">{error}</p>
+            )}
             <button
               onClick={handleBooking}
-              disabled={!selectedSlot}
-              className={`w-full py-3 rounded-xl font-semibold transition-colors ${
-                selectedSlot
+              disabled={!selectedSlot || booking}
+              className={`w-full py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 ${
+                selectedSlot && !booking
                   ? 'bg-primary-600 hover:bg-primary-700 text-white'
                   : 'bg-gray-100 text-gray-400 cursor-not-allowed'
               }`}
             >
-              {selectedSlot ? 'Prenota Visita' : 'Seleziona uno slot'}
+              {booking && <Loader2 className="w-4 h-4 animate-spin" />}
+              {selectedSlot ? (booking ? 'Prenotando...' : 'Prenota Visita') : 'Seleziona uno slot'}
             </button>
 
             <button className="w-full flex items-center justify-center gap-2 py-3 mt-3 rounded-xl border border-gray-200 hover:bg-gray-50 font-medium text-gray-700 transition-colors">

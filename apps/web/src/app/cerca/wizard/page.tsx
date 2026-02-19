@@ -355,8 +355,9 @@ function StepOccupation({ data, update, onNext }: StepProps) {
   );
 }
 
-// ---------- Step 1: Age & Gender ----------
+// ---------- Step 1: Age & Gender — auto-advance when both selected ----------
 function StepAgeGender({ data, update, onNext }: StepProps) {
+  const advanceRef = useRef<ReturnType<typeof setTimeout>>();
   const GENDERS = [
     { value: 'male', label: 'Uomo', icon: '👨' },
     { value: 'female', label: 'Donna', icon: '👩' },
@@ -369,6 +370,14 @@ function StepAgeGender({ data, update, onNext }: StepProps) {
     { value: '28-35', label: '28-35' },
     { value: '36+', label: '36+' },
   ];
+
+  // Auto-advance when both gender and age are selected
+  const tryAutoAdvance = (nextGender: string, nextAge: string) => {
+    if (advanceRef.current) clearTimeout(advanceRef.current);
+    if (nextGender && nextAge) {
+      advanceRef.current = setTimeout(() => onNext?.(), 350);
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -387,7 +396,11 @@ function StepAgeGender({ data, update, onNext }: StepProps) {
           {GENDERS.map((g) => (
             <button
               key={g.value}
-              onClick={() => update({ userGender: data.userGender === g.value ? '' : g.value })}
+              onClick={() => {
+                const next = data.userGender === g.value ? '' : g.value;
+                update({ userGender: next });
+                tryAutoAdvance(next, data.userAge);
+              }}
               className={`flex flex-col items-center gap-2 py-4 rounded-xl border-2 transition-all ${
                 data.userGender === g.value
                   ? 'border-primary-500 bg-primary-50'
@@ -408,7 +421,11 @@ function StepAgeGender({ data, update, onNext }: StepProps) {
           {AGE_RANGES.map((a) => (
             <button
               key={a.value}
-              onClick={() => update({ userAge: data.userAge === a.value ? '' : a.value })}
+              onClick={() => {
+                const next = data.userAge === a.value ? '' : a.value;
+                update({ userAge: next });
+                tryAutoAdvance(data.userGender, next);
+              }}
               className={`py-3 rounded-xl border-2 text-sm font-medium transition-all ${
                 data.userAge === a.value
                   ? 'border-primary-500 bg-primary-50 text-primary-700'

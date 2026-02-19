@@ -2,14 +2,15 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import {
   MapPin, Euro, Users, Calendar,
-  Square, ArrowLeft, Heart, Share2,
-  CheckCircle, XCircle,
+  Square, ArrowLeft, Share2,
+  CheckCircle, XCircle, Clock,
 } from 'lucide-react';
-import { BookingWidget } from '@/components/room/BookingWidget';
+import { InterestActions } from '@/components/room/InterestActions';
 import { RoommateCard } from '@/components/room/RoommateCard';
+import { MiniMap } from '@/components/room/MiniMap';
 import { prisma } from '@roommate/database';
 import { getRoomTypeLabel } from '@roommate/shared';
-import type { ListingDetail, VisitSlot } from '@roommate/shared';
+import type { ListingDetail } from '@roommate/shared';
 
 // Feature labels for Italian UI
 const featureLabels: Record<string, string> = {
@@ -106,14 +107,14 @@ async function getListingDetail(id: string): Promise<ListingDetail | null> {
       avatar: r.avatar,
     })),
     landlord: {
-      id: listing.landlord.id,
-      name: listing.landlord.name,
-      avatar: listing.landlord.avatar,
-      verified: listing.landlord.verified,
-      createdAt: listing.landlord.createdAt.toISOString(),
-      responseRate: listing.landlord.landlordProfile?.responseRate ?? 0,
-      responseTime: listing.landlord.landlordProfile?.responseTime ?? 0,
-      totalListings: listing.landlord.landlordProfile?.totalListings ?? 0,
+      id: listing.landlord!.id,
+      name: listing.landlord!.name,
+      avatar: listing.landlord!.avatar,
+      verified: listing.landlord!.verified,
+      createdAt: listing.landlord!.createdAt.toISOString(),
+      responseRate: listing.landlord!.landlordProfile?.responseRate ?? 0,
+      responseTime: listing.landlord!.landlordProfile?.responseTime ?? 0,
+      totalListings: listing.landlord!.landlordProfile?.totalListings ?? 0,
     },
     currentRoommates: listing.roommates.length,
     maxRoommates: listing.roommates.length + 1,
@@ -126,45 +127,12 @@ async function getListingDetail(id: string): Promise<ListingDetail | null> {
   };
 }
 
-async function getListingSlots(listingId: string): Promise<VisitSlot[]> {
-  const slots = await prisma.visitSlot.findMany({
-    where: {
-      listingId,
-      date: { gte: new Date() },
-    },
-    include: { bookings: true },
-    orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
-  });
-
-  return slots.map((s) => ({
-    id: s.id,
-    date: s.date.toISOString().split('T')[0],
-    startTime: s.startTime,
-    endTime: s.endTime,
-    type: s.type,
-    maxGuests: s.maxGuests,
-    bookedCount: s.bookings.length,
-    available: s.bookings.length < s.maxGuests,
-  }));
-}
-
 export default async function StanzaPage({ params }: { params: { id: string } }) {
-  const [listing, slots] = await Promise.all([
-    getListingDetail(params.id),
-    getListingSlots(params.id),
-  ]);
+  const listing = await getListingDetail(params.id);
 
   if (!listing) {
     notFound();
   }
-
-  // Format response time for display
-  const responseTimeLabel =
-    listing.landlord.responseTime < 60
-      ? `< 1 ora`
-      : listing.landlord.responseTime < 1440
-        ? `${Math.round(listing.landlord.responseTime / 60)} ore`
-        : `${Math.round(listing.landlord.responseTime / 1440)} giorni`;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
@@ -193,19 +161,19 @@ export default async function StanzaPage({ params }: { params: { id: string } })
             )}
           </div>
 
-          {/* Title & Actions */}
+          {/* Title & Address + Apri mappa */}
           <div className="flex justify-between items-start mb-6">
             <div>
               <h1 className="text-2xl font-bold text-gray-800 mb-2">{listing.title}</h1>
-              <p className="text-gray-500 flex items-center gap-1">
-                <MapPin className="w-4 h-4" />
-                {listing.address}
-              </p>
+              <div className="flex items-center gap-3">
+                <p className="text-gray-500 flex items-center gap-1">
+                  <MapPin className="w-4 h-4" />
+                  {listing.address}
+                </p>
+                <MiniMap lat={listing.latitude} lng={listing.longitude} address={listing.address} />
+              </div>
             </div>
             <div className="flex gap-2">
-              <button className="p-2 rounded-full border border-gray-200 hover:bg-gray-50">
-                <Heart className="w-5 h-5 text-gray-600" />
-              </button>
               <button className="p-2 rounded-full border border-gray-200 hover:bg-gray-50">
                 <Share2 className="w-5 h-5 text-gray-600" />
               </button>
@@ -278,35 +246,7 @@ export default async function StanzaPage({ params }: { params: { id: string } })
             </section>
           )}
 
-          {/* Preferences */}
-          {(listing.preferences.gender || listing.preferences.ageMin || listing.preferences.occupation.length > 0) && (
-            <section className="mb-8">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">Chi cerchiamo</h2>
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                <ul className="space-y-2 text-amber-800">
-                  {listing.preferences.gender && (
-                    <li>
-                      {listing.preferences.gender === 'MALE' ? 'Solo uomini' :
-                       listing.preferences.gender === 'FEMALE' ? 'Solo donne' : ''}
-                    </li>
-                  )}
-                  {listing.preferences.ageMin && listing.preferences.ageMax && (
-                    <li>Età: {listing.preferences.ageMin} - {listing.preferences.ageMax} anni</li>
-                  )}
-                  {listing.preferences.occupation.length > 0 && (
-                    <li>
-                      {listing.preferences.occupation.length === 1
-                        ? `Solo ${listing.preferences.occupation[0].toLowerCase()}`
-                        : `${listing.preferences.occupation.join(', ')}`}
-                    </li>
-                  )}
-                  {!listing.rules.couplesAllowed && <li>No coppie</li>}
-                </ul>
-              </div>
-            </section>
-          )}
-
-          {/* Rules */}
+          {/* Rules (includes quiet hours as part of rules, not separate) */}
           <section className="mb-8">
             <h2 className="text-xl font-bold text-gray-800 mb-4">Regole della casa</h2>
             <div className="grid grid-cols-2 gap-3">
@@ -326,43 +266,51 @@ export default async function StanzaPage({ params }: { params: { id: string } })
                 {listing.rules.couplesAllowed ? <CheckCircle className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
                 <span className="text-sm">Coppie</span>
               </div>
+              {listing.rules.quietHoursStart && listing.rules.quietHoursEnd && (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-50 text-blue-700 col-span-2">
+                  <Clock className="w-5 h-5" />
+                  <span className="text-sm">Ore di silenzio: {listing.rules.quietHoursStart} - {listing.rules.quietHoursEnd}</span>
+                </div>
+              )}
+              {listing.rules.cleaningSchedule && (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-gray-50 text-gray-600 col-span-2">
+                  <CheckCircle className="w-5 h-5" />
+                  <span className="text-sm">Pulizie: {listing.rules.cleaningSchedule}</span>
+                </div>
+              )}
             </div>
-            {listing.rules.quietHoursStart && listing.rules.quietHoursEnd && (
-              <p className="text-sm text-gray-600 mt-3">
-                Ore di silenzio: {listing.rules.quietHoursStart} - {listing.rules.quietHoursEnd}
-              </p>
-            )}
-            {listing.rules.cleaningSchedule && (
-              <p className="text-sm text-gray-600 mt-1">
-                Pulizie: {listing.rules.cleaningSchedule}
-              </p>
-            )}
           </section>
         </div>
 
-        {/* Sidebar - Booking Widget */}
+        {/* Sidebar */}
         <div className="lg:col-span-1">
-          <div className="sticky top-24">
-            <BookingWidget
-              room={{
-                price: listing.price,
-                expenses: listing.expenses,
-                deposit: listing.deposit,
-                virtualTourUrl: listing.virtualTourUrl,
-              }}
-              availableSlots={slots.map((s) => ({
-                date: s.date,
-                time: s.startTime,
-                type: s.type === 'SINGLE' ? 'single' : 'openday',
-              }))}
-              landlord={{
-                id: listing.landlord.id,
-                name: listing.landlord.name,
-                responseTime: responseTimeLabel,
-                responseRate: listing.landlord.responseRate,
-                verified: listing.landlord.verified,
-              }}
-            />
+          <div className="sticky top-24 space-y-4">
+            {/* Interest & Save Actions */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+              <InterestActions listingId={listing.id} />
+            </div>
+
+            {/* Price recap card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+              <div className="flex items-baseline gap-1 mb-3">
+                <span className="text-2xl font-bold text-gray-800">€{listing.price}</span>
+                <span className="text-gray-500 text-sm">/mese</span>
+              </div>
+              <div className="space-y-2 text-sm text-gray-600">
+                <div className="flex justify-between">
+                  <span>Spese incluse</span>
+                  <span className="font-medium">€{listing.expenses}/mese</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Deposito</span>
+                  <span className="font-medium">€{listing.deposit}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Disponibile dal</span>
+                  <span className="font-medium">{new Date(listing.availableFrom).toLocaleDateString('it-IT')}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
