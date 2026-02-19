@@ -5,9 +5,9 @@ import { SearchContent } from '@/components/search/SearchContent';
 export default function CercaPage() {
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col">
-      {/* Filters Bar */}
-      <div className="bg-white border-b p-4">
-        <Suspense fallback={<div className="h-12" />}>
+      {/* Compact filter pills bar */}
+      <div className="bg-white/80 backdrop-blur-sm border-b border-gray-100 px-4 py-2">
+        <Suspense fallback={<div className="h-8" />}>
           <SearchFilters />
         </Suspense>
       </div>

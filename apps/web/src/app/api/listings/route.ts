@@ -16,6 +16,11 @@ export async function GET(request: Request) {
   const mine = searchParams.get('mine') === 'true';
   const page = parseInt(searchParams.get('page') || '1');
   const limit = parseInt(searchParams.get('limit') || '20');
+  // Bounding box params for map-based search
+  const north = searchParams.get('north');
+  const south = searchParams.get('south');
+  const east = searchParams.get('east');
+  const west = searchParams.get('west');
 
   // Build Prisma where clause
   const where: Record<string, unknown> = {};
@@ -46,6 +51,12 @@ export async function GET(request: Request) {
 
   if (roomType) {
     where.roomType = roomType;
+  }
+
+  // Bounding box filter (map-based search)
+  if (north && south && east && west) {
+    where.latitude = { gte: parseFloat(south), lte: parseFloat(north) };
+    where.longitude = { gte: parseFloat(west), lte: parseFloat(east) };
   }
 
   try {

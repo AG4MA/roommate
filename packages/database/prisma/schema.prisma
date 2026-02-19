@@ -131,8 +131,8 @@ enum IncomeRange {
 
 model Listing {
   id            String      @id @default(cuid())
-  landlordId    String
-  landlord      User        @relation(fields: [landlordId], references: [id], onDelete: Cascade)
+  landlordId    String?
+  landlord      User?       @relation(fields: [landlordId], references: [id], onDelete: Cascade)
   
   // Basic info
   title         String
@@ -189,6 +189,13 @@ model Listing {
   reviews       Review[]
   nearbyAmenities NearbyAmenity[]
   interests     Interest[]
+
+  // Anonymous publishing (no-registration flow)
+  editToken     String?     @unique  // URL token for anonymous editing
+  editCode      String?              // 6-digit code to access edit page
+  contactEmail  String?              // public contact email (no-reg)
+  contactPhone  String?              // public contact phone (no-reg)
+  isAnonymous   Boolean     @default(false) // true if published without account
   
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
