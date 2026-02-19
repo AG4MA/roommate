@@ -13,6 +13,8 @@ import { trackAction } from '@/hooks/useAnalytics';
 // Step components
 import { StepBasicInfo } from '@/components/listing/StepBasicInfo';
 import { StepLocation } from '@/components/listing/StepLocation';
+import { StepPricing } from '@/components/listing/StepPricing';
+import { StepContract } from '@/components/listing/StepContract';
 import { StepFeatures } from '@/components/listing/StepFeatures';
 import { StepPreferences } from '@/components/listing/StepPreferences';
 import { StepMedia } from '@/components/listing/StepMedia';
@@ -21,7 +23,7 @@ import { StepReview } from '@/components/listing/StepReview';
 export interface ListingFormData {
   title: string;
   description: string;
-  roomType: 'SINGLE' | 'DOUBLE' | 'STUDIO' | 'ENTIRE_PLACE';
+  roomType: 'SINGLE'; // Solo stanze singole
   price: number;
   expenses: number;
   deposit: number;
@@ -32,6 +34,11 @@ export interface ListingFormData {
   availableFrom: string;
   minStay: number;
   maxStay: number | null;
+  // House metadata
+  totalRooms: number | null;
+  bathrooms: number | null;
+  specialAreas: string[];
+  // Location
   address: string;
   city: string;
   neighborhood: string;
@@ -56,25 +63,53 @@ export interface ListingFormData {
     smokingAllowed: boolean;
     couplesAllowed: boolean;
     guestsAllowed: boolean;
-    cleaningSchedule: string;
+    quietHoursEnabled: boolean;
     quietHoursStart: string;
     quietHoursEnd: string;
+    cleaningSchedule: string;
   };
   preferences: {
-    gender: 'MALE' | 'FEMALE' | 'OTHER' | null;
+    gender: 'MALE' | 'FEMALE' | null;
     ageMin: number | null;
     ageMax: number | null;
     occupation: string[];
-    languages: string[];
+  };
+  // Pricing breakdown
+  pricing: {
+    allInclusive: boolean;
+    electricityGas: number | null;
+    water: number | null;
+    heatingCost: number | null;
+    condominiumFees: number | null;
+    cleaningIncluded: boolean;
+    cleaningFrequency: string;
+    cleaningHours: string;
+    cleaningArea: 'common' | 'all' | '';
+    expenseNotes: string;
+  };
+  // Contract details
+  contract: {
+    type: string;
+    startDate: string;
+    endDate: string;
+    minDuration: number | null;
+    maxDuration: number | null;
+    renewalPossible: boolean | null;
+    renewalConditions: string;
+    residenceAllowed: boolean | null;
+    domicileAllowed: boolean | null;
+    outOfTownOnly: boolean;
+    outOfTownNote: string;
   };
   images: { url: string; caption?: string }[];
   videoUrl: string;
-  roommates: { name: string; age?: number; occupation?: string; bio?: string }[];
+  roommates: { name: string; age?: number; gender?: string; occupation?: string; bio?: string }[];
   publisherType?: 'private' | 'company' | 'sublet';
   companyName?: string;
   vatNumber?: string;
   contactEmail?: string;
   contactPhone?: string;
+  contactPreference?: 'email' | 'phone' | 'app';
 }
 
 const INITIAL_DATA: ListingFormData = {
@@ -91,6 +126,9 @@ const INITIAL_DATA: ListingFormData = {
   availableFrom: '',
   minStay: 6,
   maxStay: null,
+  totalRooms: null,
+  bathrooms: null,
+  specialAreas: [],
   address: '',
   city: 'Milano',
   neighborhood: '',
@@ -104,10 +142,36 @@ const INITIAL_DATA: ListingFormData = {
   },
   rules: {
     petsAllowed: false, smokingAllowed: false, couplesAllowed: false,
-    guestsAllowed: true, cleaningSchedule: '', quietHoursStart: '', quietHoursEnd: '',
+    guestsAllowed: true, quietHoursEnabled: false, quietHoursStart: '', quietHoursEnd: '',
+    cleaningSchedule: '',
   },
   preferences: {
-    gender: null, ageMin: null, ageMax: null, occupation: [], languages: [],
+    gender: null, ageMin: null, ageMax: null, occupation: [],
+  },
+  pricing: {
+    allInclusive: false,
+    electricityGas: null,
+    water: null,
+    heatingCost: null,
+    condominiumFees: null,
+    cleaningIncluded: false,
+    cleaningFrequency: '',
+    cleaningHours: '',
+    cleaningArea: '',
+    expenseNotes: '',
+  },
+  contract: {
+    type: '',
+    startDate: '',
+    endDate: '',
+    minDuration: null,
+    maxDuration: null,
+    renewalPossible: null,
+    renewalConditions: '',
+    residenceAllowed: null,
+    domicileAllowed: null,
+    outOfTownOnly: false,
+    outOfTownNote: '',
   },
   images: [],
   videoUrl: '',
@@ -117,9 +181,11 @@ const INITIAL_DATA: ListingFormData = {
 const LISTING_STEPS = [
   { title: 'Informazioni base', label: 'Info' },
   { title: 'Posizione', label: 'Posizione' },
+  { title: 'Affitto mensile', label: 'Affitto' },
+  { title: 'Contratto', label: 'Contratto' },
   { title: 'Caratteristiche e regole', label: 'Dettagli' },
   { title: 'Chi cerchi', label: 'Preferenze' },
-  { title: 'Foto e video', label: 'Media' },
+  { title: 'Foto e coinquilini', label: 'Media' },
   { title: 'Riepilogo', label: 'Pubblica' },
 ];
 
@@ -437,6 +503,13 @@ export default function PubblicaPage() {
     setSubmitting(true);
     setError('');
 
+    // Photo validation — blocking
+    if (publish && formData.images.length === 0) {
+      setError('Devi caricare almeno una foto per pubblicare l\'annuncio.');
+      setSubmitting(false);
+      return;
+    }
+
     if (regMode === 'anonymous') {
       if (!formData.contactEmail && !formData.contactPhone) {
         setError('Inserisci almeno un recapito (email o telefono) per essere contattato.');
@@ -484,10 +557,12 @@ export default function PubblicaPage() {
     switch (currentStep) {
       case 0: return <StepBasicInfo data={formData} onChange={updateFormData} />;
       case 1: return <StepLocation data={formData} onChange={updateFormData} />;
-      case 2: return <StepFeatures data={formData} onChange={updateFormData} />;
-      case 3: return <StepPreferences data={formData} onChange={updateFormData} />;
-      case 4: return <StepMedia data={formData} onChange={updateFormData} />;
-      case 5: return <StepReview data={formData} />;
+      case 2: return <StepPricing data={formData} onChange={updateFormData} />;
+      case 3: return <StepContract data={formData} onChange={updateFormData} />;
+      case 4: return <StepFeatures data={formData} onChange={updateFormData} />;
+      case 5: return <StepPreferences data={formData} onChange={updateFormData} />;
+      case 6: return <StepMedia data={formData} onChange={updateFormData} />;
+      case 7: return <StepReview data={formData} />;
       default: return null;
     }
   };

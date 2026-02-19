@@ -1,10 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import type { ListingFormData } from '@/app/pubblica/page';
 import {
   Wifi, Sofa, Bath, Sun, Wind, Flame,
   WashingMachine, UtensilsCrossed, Car, TreePine, Fence,
-  PawPrint, Cigarette, Heart, Users, Clock
+  PawPrint, Cigarette, Heart, Users, Clock, Info, X
 } from 'lucide-react';
 
 interface StepFeaturesProps {
@@ -27,6 +28,8 @@ const featureOptions = [
 ] as const;
 
 export function StepFeatures({ data, onChange }: StepFeaturesProps) {
+  const [showRulesInfo, setShowRulesInfo] = useState(false);
+
   const toggleFeature = (key: string) => {
     onChange({
       features: {
@@ -71,8 +74,42 @@ export function StepFeatures({ data, onChange }: StepFeaturesProps) {
 
       {/* Rules */}
       <div>
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Regole della casa</h3>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="flex items-center gap-2 mb-4">
+          <h3 className="text-lg font-semibold text-gray-800">Regole della casa</h3>
+          <button
+            type="button"
+            onClick={() => setShowRulesInfo(true)}
+            className="text-gray-400 hover:text-primary-600 transition-colors"
+            title="Informazioni sulle regole"
+          >
+            <Info className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Rules info popup */}
+        {showRulesInfo && (
+          <div className="mb-4 bg-blue-50 border border-blue-200 rounded-xl p-4 relative">
+            <button
+              type="button"
+              onClick={() => setShowRulesInfo(false)}
+              className="absolute top-2 right-2 text-blue-400 hover:text-blue-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <p className="text-sm text-blue-800 font-medium mb-2">Come funzionano le regole?</p>
+            <ul className="text-sm text-blue-700 space-y-1 list-disc list-inside">
+              <li>Clicca per attivare o disattivare ogni regola</li>
+              <li>Le regole attive verranno mostrate nella scheda dell&apos;annuncio</li>
+              <li>Gli inquilini potranno filtrare la ricerca in base a queste</li>
+              <li>Le ore di silenzio indicano la fascia oraria in cui si chiede silenzio</li>
+            </ul>
+            <p className="text-xs text-blue-500 mt-2">
+              Manca una regola? <a href="/api/feedback" className="underline">Suggeriscila qui</a>
+            </p>
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <button
             type="button"
             onClick={() => toggleRule('petsAllowed')}
@@ -121,39 +158,63 @@ export function StepFeatures({ data, onChange }: StepFeaturesProps) {
             <Users className="w-5 h-5" />
             <span className="font-medium text-sm">Ospiti ammessi</span>
           </button>
+          {/* Quiet hours as chip toggle */}
+          <button
+            type="button"
+            onClick={() => {
+              const enabled = !data.rules.quietHoursEnabled;
+              onChange({
+                rules: {
+                  ...data.rules,
+                  quietHoursEnabled: enabled,
+                  quietHoursStart: enabled ? (data.rules.quietHoursStart || '22:00') : '',
+                  quietHoursEnd: enabled ? (data.rules.quietHoursEnd || '08:00') : '',
+                },
+              });
+            }}
+            className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-colors ${
+              data.rules.quietHoursEnabled
+                ? 'border-green-500 bg-green-50 text-green-700'
+                : 'border-gray-200 text-gray-600'
+            }`}
+          >
+            <Clock className="w-5 h-5" />
+            <span className="font-medium text-sm">Ore di silenzio</span>
+          </button>
         </div>
+
+        {/* Quiet hours time range (shown when enabled) */}
+        {data.rules.quietHoursEnabled && (
+          <div className="mt-3 flex items-center gap-3 p-3 bg-green-50 rounded-xl border border-green-200">
+            <Clock className="w-4 h-4 text-green-600 shrink-0" />
+            <span className="text-sm text-green-700">Dalle</span>
+            <input
+              type="time"
+              value={data.rules.quietHoursStart}
+              onChange={(e) => onChange({ rules: { ...data.rules, quietHoursStart: e.target.value } })}
+              className="px-3 py-1.5 rounded-lg border border-green-300 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+            />
+            <span className="text-sm text-green-700">alle</span>
+            <input
+              type="time"
+              value={data.rules.quietHoursEnd}
+              onChange={(e) => onChange({ rules: { ...data.rules, quietHoursEnd: e.target.value } })}
+              className="px-3 py-1.5 rounded-lg border border-green-300 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+            />
+          </div>
+        )}
       </div>
 
-      {/* Cleaning & Quiet Hours */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Pulizie</label>
-          <input
-            type="text"
-            value={data.rules.cleaningSchedule}
-            onChange={(e) => onChange({ rules: { ...data.rules, cleaningSchedule: e.target.value } })}
-            placeholder="es. A turni settimanali"
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Ore di silenzio (inizio)</label>
-          <input
-            type="time"
-            value={data.rules.quietHoursStart}
-            onChange={(e) => onChange({ rules: { ...data.rules, quietHoursStart: e.target.value } })}
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Ore di silenzio (fine)</label>
-          <input
-            type="time"
-            value={data.rules.quietHoursEnd}
-            onChange={(e) => onChange({ rules: { ...data.rules, quietHoursEnd: e.target.value } })}
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
-          />
-        </div>
+      {/* Cleaning */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Organizzazione pulizie</label>
+        <input
+          type="text"
+          value={data.rules.cleaningSchedule}
+          onChange={(e) => onChange({ rules: { ...data.rules, cleaningSchedule: e.target.value } })}
+          placeholder="es. A turni settimanali, Donna delle pulizie ogni lunedì"
+          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+        />
       </div>
     </div>
   );

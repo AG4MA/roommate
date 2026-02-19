@@ -1,7 +1,7 @@
 'use client';
 
 import type { ListingFormData } from '@/app/pubblica/page';
-import { UserCheck, Globe, Briefcase } from 'lucide-react';
+import { UserCheck, Briefcase } from 'lucide-react';
 
 interface StepPreferencesProps {
   data: ListingFormData;
@@ -12,35 +12,26 @@ const genderOptions = [
   { value: null, label: 'Indifferente' },
   { value: 'MALE' as const, label: 'Uomo' },
   { value: 'FEMALE' as const, label: 'Donna' },
-  { value: 'OTHER' as const, label: 'Altro' },
 ];
 
 const occupationOptions = [
+  { value: 'ANY', label: 'Indifferente' },
   { value: 'STUDENT', label: 'Studente' },
   { value: 'WORKING', label: 'Lavoratore' },
-  { value: 'FREELANCER', label: 'Freelancer' },
-];
-
-const commonLanguages = [
-  'Italiano', 'English', 'Español', 'Français',
-  'Deutsch', 'Português', 'العربية', '中文',
 ];
 
 export function StepPreferences({ data, onChange }: StepPreferencesProps) {
   const toggleOccupation = (value: string) => {
-    const current = data.preferences.occupation;
-    const updated = current.includes(value)
-      ? current.filter((o) => o !== value)
-      : [...current, value];
-    onChange({ preferences: { ...data.preferences, occupation: updated } });
-  };
-
-  const toggleLanguage = (lang: string) => {
-    const current = data.preferences.languages;
-    const updated = current.includes(lang)
-      ? current.filter((l) => l !== lang)
-      : [...current, lang];
-    onChange({ preferences: { ...data.preferences, languages: updated } });
+    // "Indifferente" (ANY) clears all others; selecting specific clears ANY
+    if (value === 'ANY') {
+      onChange({ preferences: { ...data.preferences, occupation: ['ANY'] } });
+      return;
+    }
+    const withoutAny = data.preferences.occupation.filter((o) => o !== 'ANY');
+    const updated = withoutAny.includes(value)
+      ? withoutAny.filter((o) => o !== value)
+      : [...withoutAny, value];
+    onChange({ preferences: { ...data.preferences, occupation: updated.length === 0 ? [] : updated } });
   };
 
   return (
@@ -52,7 +43,7 @@ export function StepPreferences({ data, onChange }: StepPreferencesProps) {
           Genere preferito
         </h3>
         <p className="text-sm text-gray-500 mb-4">Seleziona il genere del coinquilino ideale</p>
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           {genderOptions.map(({ value, label }) => (
             <button
               key={label}
@@ -135,31 +126,6 @@ export function StepPreferences({ data, onChange }: StepPreferencesProps) {
               }`}
             >
               {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Languages */}
-      <div>
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">
-          <Globe className="w-5 h-5 inline-block mr-2" />
-          Lingue parlate
-        </h3>
-        <p className="text-sm text-gray-500 mb-4">Seleziona le lingue richieste</p>
-        <div className="flex flex-wrap gap-2">
-          {commonLanguages.map((lang) => (
-            <button
-              key={lang}
-              type="button"
-              onClick={() => toggleLanguage(lang)}
-              className={`px-4 py-2 rounded-full border-2 text-sm font-medium transition-colors ${
-                data.preferences.languages.includes(lang)
-                  ? 'border-primary-500 bg-primary-50 text-primary-700'
-                  : 'border-gray-200 text-gray-600 hover:border-gray-300'
-              }`}
-            >
-              {lang}
             </button>
           ))}
         </div>

@@ -160,10 +160,43 @@ model Listing {
   floor         Int?
   hasElevator   Boolean     @default(false)
   
+  // House metadata
+  totalRooms    Int?
+  bathrooms     Int?
+  specialAreas  String[]    // ["Lavanderia", "Salotto", ...]
+  
   // Pricing
   price         Int         // monthly rent
   expenses      Int         @default(0)
   deposit       Int
+  
+  // Pricing breakdown
+  allInclusive      Boolean @default(false)
+  electricityGas    Int?    // estimated monthly per person
+  water             Int?
+  heatingCost       Int?
+  condominiumFees   Int?
+  cleaningIncluded  Boolean @default(false)
+  cleaningFrequency String? // weekly, biweekly, monthly
+  cleaningHours     String?
+  cleaningArea      String? // common, all
+  expenseNotes      String?
+  
+  // Contract details
+  contractType        String?   // transitorio, studenti, 4+4, 3+2, etc.
+  contractStartDate   DateTime?
+  contractEndDate     DateTime?
+  contractMinDuration Int?      // months
+  contractMaxDuration Int?      // months
+  renewalPossible     Boolean?
+  renewalConditions   String?
+  residenceAllowed    Boolean?
+  domicileAllowed     Boolean?
+  outOfTownOnly       Boolean   @default(false)
+  outOfTownNote       String?
+  
+  // Contact preference for publisher
+  publisherContactPref String?  // email, phone, app
   
   // Availability
   availableFrom DateTime
@@ -256,6 +289,7 @@ model ListingRules {
   couplesAllowed   Boolean @default(false)
   guestsAllowed    Boolean @default(true)
   cleaningSchedule String?
+  quietHoursEnabled Boolean @default(false)
   quietHoursStart  String? // "22:00"
   quietHoursEnd    String? // "08:00"
   
@@ -283,8 +317,9 @@ model Roommate {
   
   name        String
   age         Int?
-  occupation  String?
-  bio         String?
+  gender      String?   // MALE, FEMALE
+  occupation  String?   // Studente, Lavoratore
+  bio         String?   @db.VarChar(200)
   avatar      String?
   
   @@map("roommates")
@@ -481,6 +516,7 @@ model Interest {
   position            Int            @default(0) // 1-3 = active queue
   score               Int            @default(0) // engagement score
   schedulingApproved  Boolean        @default(false) // landlord approved visit scheduling
+  removedAt           DateTime?      // when withdrawn/removed (for 24h cooldown)
 
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt

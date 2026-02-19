@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import type { ListingFormData } from '@/app/pubblica/page';
 import {
-  Upload, X, Video, Plus, User, GripVertical, AlertCircle, Loader2
+  Upload, X, Video, Plus, User, GripVertical, AlertCircle, Loader2,
+  Mail, Phone, MessageSquare
 } from 'lucide-react';
 
 interface StepMediaProps {
@@ -71,7 +72,7 @@ export function StepMedia({ data, onChange }: StepMediaProps) {
 
   // Roommate management
   const addRoommate = () => {
-    onChange({ roommates: [...data.roommates, { name: '', age: undefined, occupation: '', bio: '' }] });
+    onChange({ roommates: [...data.roommates, { name: '', age: undefined, gender: '', occupation: '', bio: '' }] });
   };
 
   const updateRoommate = (index: number, updates: Partial<ListingFormData['roommates'][0]>) => {
@@ -209,7 +210,7 @@ export function StepMedia({ data, onChange }: StepMediaProps) {
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <div className="grid grid-cols-3 gap-3 mb-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
                 <input
                   type="text"
                   value={rm.name}
@@ -226,21 +227,36 @@ export function StepMedia({ data, onChange }: StepMediaProps) {
                   placeholder="Età"
                   className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
-                <input
-                  type="text"
+                <select
+                  value={rm.gender || ''}
+                  onChange={(e) => updateRoommate(idx, { gender: e.target.value })}
+                  className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+                >
+                  <option value="">Genere</option>
+                  <option value="MALE">Uomo</option>
+                  <option value="FEMALE">Donna</option>
+                </select>
+                <select
                   value={rm.occupation || ''}
                   onChange={(e) => updateRoommate(idx, { occupation: e.target.value })}
-                  placeholder="Occupazione"
-                  className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
+                  className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+                >
+                  <option value="">Occupazione</option>
+                  <option value="Studente">Studente</option>
+                  <option value="Lavoratore">Lavoratore</option>
+                </select>
               </div>
               <textarea
                 value={rm.bio || ''}
                 onChange={(e) => updateRoommate(idx, { bio: e.target.value })}
                 placeholder="Breve descrizione..."
                 rows={2}
+                maxLength={200}
                 className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
               />
+              {rm.bio && (
+                <p className="text-xs text-gray-400 text-right mt-1">{rm.bio.length}/200</p>
+              )}
             </div>
           ))}
 
@@ -254,6 +270,36 @@ export function StepMedia({ data, onChange }: StepMediaProps) {
               Aggiungi coinquilino
             </button>
           )}
+        </div>
+      </div>
+
+      {/* Contact preference */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-800 mb-2">Come vuoi essere contattato?</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          Scegli come preferisci ricevere i primi messaggi dagli interessati
+        </p>
+        <div className="grid grid-cols-3 gap-3">
+          {([
+            { value: 'app', label: 'App rooMate', icon: MessageSquare, desc: 'Chat integrata' },
+            { value: 'email', label: 'Email', icon: Mail, desc: 'Via email' },
+            { value: 'phone', label: 'Telefono', icon: Phone, desc: 'Chiamata/WhatsApp' },
+          ] as const).map(({ value, label, icon: Icon, desc }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => onChange({ contactPreference: value })}
+              className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-colors ${
+                data.contactPreference === value
+                  ? 'border-primary-500 bg-primary-50 text-primary-700'
+                  : 'border-gray-200 text-gray-600 hover:border-gray-300'
+              }`}
+            >
+              <Icon className="w-5 h-5" />
+              <span className="font-medium text-sm">{label}</span>
+              <span className="text-xs opacity-75">{desc}</span>
+            </button>
+          ))}
         </div>
       </div>
     </div>

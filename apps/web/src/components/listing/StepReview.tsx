@@ -2,62 +2,47 @@
 
 import type { ListingFormData } from '@/app/pubblica/page';
 import {
-  MapPin, Euro, Bed, Calendar, Ruler,
+  MapPin, Euro, Bed, Calendar, Ruler, FileText,
   Wifi, Sofa, Bath, Sun, Wind, Flame,
   WashingMachine, UtensilsCrossed, Car, TreePine, Fence,
   PawPrint, Cigarette, Heart, Users, Clock,
-  Check, X as XIcon
+  Check, X as XIcon, Zap, Droplets, Building2, Sparkles
 } from 'lucide-react';
 
 interface StepReviewProps {
   data: ListingFormData;
 }
 
-const roomTypeLabels: Record<string, string> = {
-  SINGLE: 'Singola',
-  DOUBLE: 'Doppia',
-  STUDIO: 'Monolocale',
-  ENTIRE_PLACE: 'Intero appartamento',
-};
-
 const featureIcons: Record<string, React.ComponentType<{ className?: string }>> = {
-  wifi: Wifi,
-  furnished: Sofa,
-  privateBath: Bath,
-  balcony: Sun,
-  aircon: Wind,
-  heating: Flame,
-  washingMachine: WashingMachine,
-  dishwasher: UtensilsCrossed,
-  parking: Car,
-  garden: TreePine,
-  terrace: Fence,
+  wifi: Wifi, furnished: Sofa, privateBath: Bath, balcony: Sun, aircon: Wind,
+  heating: Flame, washingMachine: WashingMachine, dishwasher: UtensilsCrossed,
+  parking: Car, garden: TreePine, terrace: Fence,
 };
 
 const featureLabels: Record<string, string> = {
-  wifi: 'WiFi',
-  furnished: 'Arredata',
-  privateBath: 'Bagno privato',
-  balcony: 'Balcone',
-  aircon: 'Aria condizionata',
-  heating: 'Riscaldamento',
-  washingMachine: 'Lavatrice',
-  dishwasher: 'Lavastoviglie',
-  parking: 'Parcheggio',
-  garden: 'Giardino',
-  terrace: 'Terrazza',
+  wifi: 'WiFi', furnished: 'Arredata', privateBath: 'Bagno privato', balcony: 'Balcone',
+  aircon: 'Aria condizionata', heating: 'Riscaldamento', washingMachine: 'Lavatrice',
+  dishwasher: 'Lavastoviglie', parking: 'Parcheggio', garden: 'Giardino', terrace: 'Terrazza',
 };
 
 const genderLabels: Record<string, string> = {
   MALE: 'Uomo',
   FEMALE: 'Donna',
-  OTHER: 'Altro',
 };
 
 const occupationLabels: Record<string, string> = {
+  ANY: 'Indifferente',
   STUDENT: 'Studente',
   WORKING: 'Lavoratore',
-  FREELANCER: 'Freelancer',
+};
+
+const contractTypeLabels: Record<string, string> = {
+  transitorio: 'Transitorio',
+  studenti: 'Studenti',
+  '4+4': '4+4 (Canone libero)',
+  '3+2': '3+2 (Canone concordato)',
+  uso_foresteria: 'Uso foresteria',
+  comodato: 'Comodato d\'uso',
 };
 
 export function StepReview({ data }: StepReviewProps) {
@@ -84,18 +69,18 @@ export function StepReview({ data }: StepReviewProps) {
           </div>
           <div className="flex justify-between">
             <span className="text-sm text-gray-500">Tipo</span>
-            <span className="text-sm font-medium text-gray-800">{roomTypeLabels[data.roomType]}</span>
+            <span className="text-sm font-medium text-gray-800">Stanza singola</span>
           </div>
           <div className="flex justify-between">
             <span className="text-sm text-gray-500">Dimensione stanza</span>
             <span className="text-sm font-medium text-gray-800">
-              {data.roomSize ? `${data.roomSize} m²` : <span className="text-red-500">Mancante</span>}
+              {data.roomSize ? `${data.roomSize} m\u00B2` : <span className="text-red-500">Mancante</span>}
             </span>
           </div>
           {data.totalSize && (
             <div className="flex justify-between">
               <span className="text-sm text-gray-500">Appartamento totale</span>
-              <span className="text-sm font-medium text-gray-800">{data.totalSize} m²</span>
+              <span className="text-sm font-medium text-gray-800">{data.totalSize} m&sup2;</span>
             </div>
           )}
           {data.floor !== null && (
@@ -103,6 +88,26 @@ export function StepReview({ data }: StepReviewProps) {
               <span className="text-sm text-gray-500">Piano</span>
               <span className="text-sm font-medium text-gray-800">
                 {data.floor}{data.hasElevator ? ' (con ascensore)' : ''}
+              </span>
+            </div>
+          )}
+          {data.totalRooms && (
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-500">Stanze totali</span>
+              <span className="text-sm font-medium text-gray-800">{data.totalRooms}</span>
+            </div>
+          )}
+          {data.bathrooms && (
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-500">Bagni</span>
+              <span className="text-sm font-medium text-gray-800">{data.bathrooms}</span>
+            </div>
+          )}
+          {data.specialAreas.length > 0 && (
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-500">Aree comuni</span>
+              <span className="text-sm font-medium text-gray-800 text-right max-w-[60%]">
+                {data.specialAreas.join(', ')}
               </span>
             </div>
           )}
@@ -121,27 +126,166 @@ export function StepReview({ data }: StepReviewProps) {
           <Euro className="w-5 h-5 text-primary-600" />
           Prezzi
         </h3>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-4 mb-3">
           <div className="bg-gray-50 rounded-xl p-4 text-center">
             <p className="text-2xl font-bold text-gray-800">
-              {data.price ? `€${data.price}` : '—'}
+              {data.price ? `\u20AC${data.price}` : '\u2014'}
             </p>
             <p className="text-xs text-gray-500 mt-1">Affitto/mese</p>
           </div>
           <div className="bg-gray-50 rounded-xl p-4 text-center">
             <p className="text-2xl font-bold text-gray-800">
-              {data.expenses ? `€${data.expenses}` : '—'}
+              {data.expenses ? `\u20AC${data.expenses}` : '\u2014'}
             </p>
             <p className="text-xs text-gray-500 mt-1">Spese</p>
           </div>
           <div className="bg-gray-50 rounded-xl p-4 text-center">
             <p className="text-2xl font-bold text-gray-800">
-              {data.deposit ? `€${data.deposit}` : '—'}
+              {data.deposit ? `\u20AC${data.deposit}` : '\u2014'}
             </p>
             <p className="text-xs text-gray-500 mt-1">Deposito</p>
           </div>
         </div>
+
+        {data.pricing.allInclusive ? (
+          <div className="bg-green-50 rounded-xl p-3 flex items-center gap-2 text-green-700 text-sm">
+            <Sparkles className="w-4 h-4" />
+            <span className="font-medium">Tutto incluso &mdash; spese comprese nell&apos;affitto</span>
+          </div>
+        ) : (
+          (data.pricing.electricityGas || data.pricing.water || data.pricing.heatingCost || data.pricing.condominiumFees) ? (
+            <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Dettaglio spese stimate</p>
+              {data.pricing.electricityGas ? (
+                <div className="flex justify-between text-sm">
+                  <span className="flex items-center gap-1 text-gray-500"><Zap className="w-3 h-3" /> Luce/Gas</span>
+                  <span className="font-medium text-gray-800">&euro;{data.pricing.electricityGas}/mese</span>
+                </div>
+              ) : null}
+              {data.pricing.water ? (
+                <div className="flex justify-between text-sm">
+                  <span className="flex items-center gap-1 text-gray-500"><Droplets className="w-3 h-3" /> Acqua</span>
+                  <span className="font-medium text-gray-800">&euro;{data.pricing.water}/mese</span>
+                </div>
+              ) : null}
+              {data.pricing.heatingCost ? (
+                <div className="flex justify-between text-sm">
+                  <span className="flex items-center gap-1 text-gray-500"><Flame className="w-3 h-3" /> Riscaldamento</span>
+                  <span className="font-medium text-gray-800">&euro;{data.pricing.heatingCost}/mese</span>
+                </div>
+              ) : null}
+              {data.pricing.condominiumFees ? (
+                <div className="flex justify-between text-sm">
+                  <span className="flex items-center gap-1 text-gray-500"><Building2 className="w-3 h-3" /> Condominio</span>
+                  <span className="font-medium text-gray-800">&euro;{data.pricing.condominiumFees}/mese</span>
+                </div>
+              ) : null}
+            </div>
+          ) : null
+        )}
+
+        {data.pricing.expenseNotes && (
+          <p className="text-sm text-gray-500 mt-2 italic">{data.pricing.expenseNotes}</p>
+        )}
+
+        {data.pricing.cleaningIncluded && (
+          <div className="bg-gray-50 rounded-xl p-3 mt-2 text-sm text-gray-600">
+            <span className="font-medium">Pulizia inclusa</span>
+            {data.pricing.cleaningFrequency && (
+              <span> &mdash; {data.pricing.cleaningFrequency === 'weekly' ? 'settimanale' : data.pricing.cleaningFrequency === 'biweekly' ? 'ogni 2 sett.' : 'mensile'}</span>
+            )}
+            {data.pricing.cleaningArea && (
+              <span> ({data.pricing.cleaningArea === 'common' ? 'aree comuni' : 'tutto'})</span>
+            )}
+          </div>
+        )}
       </section>
+
+      {/* Contract */}
+      {(data.contract.type || data.contract.startDate) && (
+        <section>
+          <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+            <FileText className="w-5 h-5 text-primary-600" />
+            Contratto
+          </h3>
+          <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+            {data.contract.type && (
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-500">Tipo</span>
+                <span className="text-sm font-medium text-gray-800">
+                  {contractTypeLabels[data.contract.type] || data.contract.type}
+                </span>
+              </div>
+            )}
+            {data.contract.startDate && (
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-500">Inizio</span>
+                <span className="text-sm font-medium text-gray-800">
+                  {new Date(data.contract.startDate).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </span>
+              </div>
+            )}
+            {data.contract.endDate && (
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-500">Fine</span>
+                <span className="text-sm font-medium text-gray-800">
+                  {new Date(data.contract.endDate).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </span>
+              </div>
+            )}
+            {data.contract.minDuration && (
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-500">Durata minima</span>
+                <span className="text-sm font-medium text-gray-800">{data.contract.minDuration} mesi</span>
+              </div>
+            )}
+            {data.contract.maxDuration && (
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-500">Durata massima</span>
+                <span className="text-sm font-medium text-gray-800">{data.contract.maxDuration} mesi</span>
+              </div>
+            )}
+            {data.contract.renewalPossible !== null && (
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-500">Rinnovabile</span>
+                <span className="text-sm font-medium text-gray-800">
+                  {data.contract.renewalPossible ? 'S\u00EC' : 'No'}
+                </span>
+              </div>
+            )}
+            {data.contract.renewalConditions && (
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-500">Condizioni rinnovo</span>
+                <span className="text-sm font-medium text-gray-800 text-right max-w-[60%]">
+                  {data.contract.renewalConditions}
+                </span>
+              </div>
+            )}
+            {data.contract.residenceAllowed !== null && (
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-500">Residenza</span>
+                <span className="text-sm font-medium text-gray-800">
+                  {data.contract.residenceAllowed ? 'Possibile' : 'Non possibile'}
+                </span>
+              </div>
+            )}
+            {data.contract.domicileAllowed !== null && (
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-500">Domicilio</span>
+                <span className="text-sm font-medium text-gray-800">
+                  {data.contract.domicileAllowed ? 'Possibile' : 'Non possibile'}
+                </span>
+              </div>
+            )}
+            {data.contract.outOfTownOnly && (
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-500">Solo fuori sede</span>
+                <span className="text-sm font-medium text-gray-800">S&igrave;</span>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Location */}
       <section>
@@ -157,7 +301,7 @@ export function StepReview({ data }: StepReviewProps) {
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-sm text-gray-500">Città</span>
+            <span className="text-sm text-gray-500">Citt&agrave;</span>
             <span className="text-sm font-medium text-gray-800">{data.city}</span>
           </div>
           {data.neighborhood && (
@@ -220,14 +364,14 @@ export function StepReview({ data }: StepReviewProps) {
               )}
             </div>
           ))}
-          {data.rules.quietHoursStart && data.rules.quietHoursEnd && (
+          {data.rules.quietHoursEnabled && data.rules.quietHoursStart && data.rules.quietHoursEnd && (
             <div className="flex items-center justify-between pt-2 border-t border-gray-200">
               <span className="flex items-center gap-2 text-sm text-gray-600">
                 <Clock className="w-4 h-4" />
                 Ore di silenzio
               </span>
               <span className="text-sm font-medium text-gray-800">
-                {data.rules.quietHoursStart} – {data.rules.quietHoursEnd}
+                {data.rules.quietHoursStart} &ndash; {data.rules.quietHoursEnd}
               </span>
             </div>
           )}
@@ -244,7 +388,7 @@ export function StepReview({ data }: StepReviewProps) {
       <section>
         <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
           <Calendar className="w-5 h-5 text-primary-600" />
-          Disponibilità
+          Disponibilit&agrave;
         </h3>
         <div className="bg-gray-50 rounded-xl p-4 space-y-2">
           <div className="flex justify-between">
@@ -273,7 +417,7 @@ export function StepReview({ data }: StepReviewProps) {
       </section>
 
       {/* Preferences */}
-      {(data.preferences.gender || data.preferences.ageMin || data.preferences.occupation.length > 0 || data.preferences.languages.length > 0) && (
+      {(data.preferences.gender || data.preferences.ageMin || data.preferences.occupation.length > 0) && (
         <section>
           <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
             <Ruler className="w-5 h-5 text-primary-600" />
@@ -284,15 +428,15 @@ export function StepReview({ data }: StepReviewProps) {
               <div className="flex justify-between">
                 <span className="text-sm text-gray-500">Genere</span>
                 <span className="text-sm font-medium text-gray-800">
-                  {genderLabels[data.preferences.gender]}
+                  {genderLabels[data.preferences.gender] || data.preferences.gender}
                 </span>
               </div>
             )}
             {(data.preferences.ageMin || data.preferences.ageMax) && (
               <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Età</span>
+                <span className="text-sm text-gray-500">Et&agrave;</span>
                 <span className="text-sm font-medium text-gray-800">
-                  {data.preferences.ageMin || '18'} – {data.preferences.ageMax || '99'} anni
+                  {data.preferences.ageMin || '18'} &ndash; {data.preferences.ageMax || '99'} anni
                 </span>
               </div>
             )}
@@ -304,14 +448,18 @@ export function StepReview({ data }: StepReviewProps) {
                 </span>
               </div>
             )}
-            {data.preferences.languages.length > 0 && (
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Lingue</span>
-                <span className="text-sm font-medium text-gray-800">
-                  {data.preferences.languages.join(', ')}
-                </span>
-              </div>
-            )}
+          </div>
+        </section>
+      )}
+
+      {/* Contact preference */}
+      {data.contactPreference && (
+        <section>
+          <h3 className="text-lg font-semibold text-gray-800 mb-3">Contatto preferito</h3>
+          <div className="bg-gray-50 rounded-xl p-4">
+            <span className="text-sm font-medium text-gray-800">
+              {data.contactPreference === 'email' ? 'Email' : data.contactPreference === 'phone' ? 'Telefono' : 'App rooMate'}
+            </span>
           </div>
         </section>
       )}
@@ -340,8 +488,8 @@ export function StepReview({ data }: StepReviewProps) {
             </div>
           )}
           {data.images.length === 0 && (
-            <p className="text-sm text-amber-600 mt-1">
-              Consigliamo di caricare almeno 3 foto per attirare più interessati.
+            <p className="text-sm text-red-500 mt-1 font-medium">
+              Nessuna foto caricata &mdash; obbligatorio caricare almeno una foto per pubblicare.
             </p>
           )}
         </div>
@@ -363,6 +511,7 @@ export function StepReview({ data }: StepReviewProps) {
                   <p className="text-sm font-medium text-gray-800">
                     {rm.name || 'Senza nome'}
                     {rm.age ? `, ${rm.age} anni` : ''}
+                    {rm.gender ? ` \u2014 ${genderLabels[rm.gender] || rm.gender}` : ''}
                   </p>
                   {rm.occupation && (
                     <p className="text-xs text-gray-500">{rm.occupation}</p>

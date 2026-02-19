@@ -1,27 +1,34 @@
 'use client';
 
 import type { ListingFormData } from '@/app/pubblica/page';
-import { Bed, Euro, Calendar } from 'lucide-react';
+import { Calendar, Home, Bath as BathIcon, DoorOpen } from 'lucide-react';
 
 interface StepBasicInfoProps {
   data: ListingFormData;
   onChange: (updates: Partial<ListingFormData>) => void;
 }
 
-const roomTypes = [
-  { value: 'SINGLE', label: 'Singola', desc: 'Una stanza in appartamento condiviso' },
-  { value: 'DOUBLE', label: 'Doppia', desc: 'Stanza condivisa con un altro inquilino' },
-  { value: 'STUDIO', label: 'Monolocale', desc: 'Ambiente unico con angolo cottura' },
-  { value: 'ENTIRE_PLACE', label: 'Intero appartamento', desc: 'Tutto lo spazio è per l\'inquilino' },
-] as const;
+const SPECIAL_AREA_OPTIONS = [
+  'Lavanderia', 'Salotto', 'Cucina abitabile', 'Balcone comune',
+  'Terrazzo comune', 'Giardino comune', 'Cantina', 'Soffitta',
+  'Palestra condominiale', 'Piscina condominiale',
+];
 
 export function StepBasicInfo({ data, onChange }: StepBasicInfoProps) {
+  const toggleArea = (area: string) => {
+    const current = data.specialAreas;
+    const updated = current.includes(area)
+      ? current.filter((a) => a !== area)
+      : [...current, area];
+    onChange({ specialAreas: updated });
+  };
+
   return (
     <div className="space-y-6">
       {/* Title */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Titolo dell'annuncio *
+          Titolo dell&apos;annuncio *
         </label>
         <input
           type="text"
@@ -50,73 +57,7 @@ export function StepBasicInfo({ data, onChange }: StepBasicInfoProps) {
         <p className="text-xs text-gray-400 mt-1">{data.description.length}/2000 caratteri</p>
       </div>
 
-      {/* Room Type */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">Tipo di stanza *</label>
-        <div className="grid grid-cols-2 gap-3">
-          {roomTypes.map((type) => (
-            <button
-              key={type.value}
-              type="button"
-              onClick={() => onChange({ roomType: type.value })}
-              className={`flex flex-col items-start p-4 rounded-xl border-2 transition-colors text-left ${
-                data.roomType === type.value
-                  ? 'border-primary-500 bg-primary-50'
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              <Bed className={`w-5 h-5 mb-2 ${data.roomType === type.value ? 'text-primary-600' : 'text-gray-400'}`} />
-              <span className="font-medium text-gray-800">{type.label}</span>
-              <span className="text-xs text-gray-500 mt-1">{type.desc}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Pricing */}
-      <div className="grid grid-cols-3 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Affitto mensile *</label>
-          <div className="relative">
-            <Euro className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="number"
-              value={data.price || ''}
-              onChange={(e) => onChange({ price: parseInt(e.target.value) || 0 })}
-              placeholder="550"
-              className="w-full pl-9 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Spese</label>
-          <div className="relative">
-            <Euro className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="number"
-              value={data.expenses || ''}
-              onChange={(e) => onChange({ expenses: parseInt(e.target.value) || 0 })}
-              placeholder="80"
-              className="w-full pl-9 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Deposito *</label>
-          <div className="relative">
-            <Euro className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="number"
-              value={data.deposit || ''}
-              onChange={(e) => onChange({ deposit: parseInt(e.target.value) || 0 })}
-              placeholder="1100"
-              className="w-full pl-9 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Room Size */}
+      {/* Room & Apartment size */}
       <div className="grid grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Dimensione stanza (m²) *</label>
@@ -150,6 +91,38 @@ export function StepBasicInfo({ data, onChange }: StepBasicInfoProps) {
         </div>
       </div>
 
+      {/* House metadata */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1.5">
+            <DoorOpen className="w-4 h-4 text-gray-400" />
+            Stanze totali
+          </label>
+          <input
+            type="number"
+            min={1}
+            value={data.totalRooms ?? ''}
+            onChange={(e) => onChange({ totalRooms: e.target.value ? parseInt(e.target.value) : null })}
+            placeholder="4"
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1.5">
+            <BathIcon className="w-4 h-4 text-gray-400" />
+            Bagni
+          </label>
+          <input
+            type="number"
+            min={1}
+            value={data.bathrooms ?? ''}
+            onChange={(e) => onChange({ bathrooms: e.target.value ? parseInt(e.target.value) : null })}
+            placeholder="2"
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          />
+        </div>
+      </div>
+
       {/* Elevator */}
       <label className="flex items-center gap-3 cursor-pointer">
         <input
@@ -161,10 +134,37 @@ export function StepBasicInfo({ data, onChange }: StepBasicInfoProps) {
         <span className="text-gray-700">Ascensore presente</span>
       </label>
 
+      {/* Special areas (chips) */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
+          <Home className="w-4 h-4 text-gray-400" />
+          Aree e ambienti speciali
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {SPECIAL_AREA_OPTIONS.map((area) => (
+            <button
+              key={area}
+              type="button"
+              onClick={() => toggleArea(area)}
+              className={`px-4 py-2 rounded-full border-2 text-sm font-medium transition-colors ${
+                data.specialAreas.includes(area)
+                  ? 'border-primary-500 bg-primary-50 text-primary-700'
+                  : 'border-gray-200 text-gray-600 hover:border-gray-300'
+              }`}
+            >
+              {area}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Availability */}
       <div className="grid grid-cols-3 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Disponibile dal *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1.5">
+            <Calendar className="w-4 h-4 text-gray-400" />
+            Disponibile dal *
+          </label>
           <input
             type="date"
             value={data.availableFrom}

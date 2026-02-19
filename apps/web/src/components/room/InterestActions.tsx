@@ -19,6 +19,9 @@ interface InterestStatus {
     position: number;
     score: number;
   } | null;
+  cooldownUntil?: string | null;
+  totalUserInterests?: number;
+  maxUserInterests?: number;
 }
 
 export function InterestActions({ listingId }: InterestActionsProps) {
@@ -27,6 +30,7 @@ export function InterestActions({ listingId }: InterestActionsProps) {
   const [isSaved, setIsSaved] = useState(false);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState<string | null>(null);
+  const [cooldownRemaining, setCooldownRemaining] = useState<string | null>(null);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -50,6 +54,30 @@ export function InterestActions({ listingId }: InterestActionsProps) {
     fetchStatus();
     checkFavorite();
   }, [fetchStatus, checkFavorite]);
+
+  // Cooldown timer
+  useEffect(() => {
+    if (!status?.cooldownUntil) {
+      setCooldownRemaining(null);
+      return;
+    }
+    const updateCooldown = () => {
+      const until = new Date(status.cooldownUntil!).getTime();
+      const now = Date.now();
+      const diff = until - now;
+      if (diff <= 0) {
+        setCooldownRemaining(null);
+        fetchStatus(); // refresh to clear cooldown
+        return;
+      }
+      const hours = Math.floor(diff / 3600000);
+      const mins = Math.floor((diff % 3600000) / 60000);
+      setCooldownRemaining(`${hours}h ${mins}m`);
+    };
+    updateCooldown();
+    const interval = setInterval(updateCooldown, 60000);
+    return () => clearInterval(interval);
+  }, [status?.cooldownUntil, fetchStatus]);
 
   const handleInterest = async () => {
     if (!session?.user?.id) {
@@ -119,6 +147,10 @@ export function InterestActions({ listingId }: InterestActionsProps) {
   const userInterest = status?.userInterest;
   const queueFull = status?.queueFull ?? false;
   const activeCount = status?.activeCount ?? 0;
+  const hasCooldown = !!cooldownRemaining;
+  const totalUserInterests = status?.totalUserInterests ?? 0;
+  const maxUserInterests = status?.maxUserInterests ?? 8;
+  const atInterestLimit = totalUserInterests >= maxUserInterests && !userInterest;
 
   return (
     <div className="space-y-3">
@@ -175,22 +207,50 @@ export function InterestActions({ listingId }: InterestActionsProps) {
               </button>
             </div>
           ) : (
-            <button
-              onClick={handleInterest}
-              disabled={acting === 'interest' || (queueFull && !status?.canExpress)}
-              className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold transition-colors ${
-                queueFull
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-primary-600 hover:bg-primary-700 text-white'
-              }`}
-            >
-              {acting === 'interest' ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <HandHeart className="w-5 h-5" />
+            <>
+              {/* Cooldown message */}
+              {hasCooldown && (
+                <div className="flex items-center gap-2 p-3 bg-orange-50 border border-orange-200 rounded-xl">
+                  <Clock className="w-5 h-5 text-orange-600" />
+                  <div>
+                    <p className="text-sm font-medium text-orange-800">Cooldown attivo</p>
+                    <p className="text-xs text-orange-600">
+                      Potrai esprimere nuovo interesse tra {cooldownRemaining}
+                    </p>
+                  </div>
+                </div>
               )}
-              {queueFull ? 'Coda piena — non disponibile' : 'Mi interessa'}
-            </button>
+
+              {/* Interest limit message */}
+              {atInterestLimit && !hasCooldown && (
+                <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                  <AlertTriangle className="w-5 h-5 text-amber-600" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-800">Limite interessi raggiunto</p>
+                    <p className="text-xs text-amber-600">
+                      Hai già {totalUserInterests} interessi attivi (max {maxUserInterests}). Ritira un interesse prima di esprimerne uno nuovo.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={handleInterest}
+                disabled={acting === 'interest' || (queueFull && !status?.canExpress) || hasCooldown || atInterestLimit}
+                className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold transition-colors ${
+                  queueFull || hasCooldown || atInterestLimit
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-primary-600 hover:bg-primary-700 text-white'
+                }`}
+              >
+                {acting === 'interest' ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <HandHeart className="w-5 h-5" />
+                )}
+                {hasCooldown ? `Cooldown — ${cooldownRemaining}` : queueFull ? 'Coda piena — non disponibile' : atInterestLimit ? 'Limite interessi raggiunto' : 'Mi interessa'}
+              </button>
+            </>
           )}
 
           {/* Save button */}
