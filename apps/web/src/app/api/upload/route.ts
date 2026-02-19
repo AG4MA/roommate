@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
 import type { ApiResponse } from '@roommate/shared';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { randomUUID } from 'crypto';
@@ -12,13 +10,8 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json<ApiResponse<null>>(
-        { success: false, error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
+    // Allow both authenticated and anonymous uploads (for anonymous listing flow)
+    // Session is optional — we just don't track the uploader for anonymous
 
     const formData = await request.formData();
     const file = formData.get('file') as File | null;

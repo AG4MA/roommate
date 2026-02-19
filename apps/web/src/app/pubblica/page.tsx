@@ -9,16 +9,7 @@ import {
   UserPlus, UserX, Clock, Mail, Phone, Link2, Copy, Check, Lock
 } from 'lucide-react';
 import { trackAction } from '@/hooks/useAnalytics';
-
-// Step components
-import { StepBasicInfo } from '@/components/listing/StepBasicInfo';
-import { StepLocation } from '@/components/listing/StepLocation';
-import { StepPricing } from '@/components/listing/StepPricing';
-import { StepContract } from '@/components/listing/StepContract';
-import { StepFeatures } from '@/components/listing/StepFeatures';
-import { StepPreferences } from '@/components/listing/StepPreferences';
-import { StepMedia } from '@/components/listing/StepMedia';
-import { StepReview } from '@/components/listing/StepReview';
+import { ListingWizard } from '@/components/listing/ListingWizard';
 
 export interface ListingFormData {
   title: string;
@@ -177,17 +168,6 @@ const INITIAL_DATA: ListingFormData = {
   videoUrl: '',
   roommates: [],
 };
-
-const LISTING_STEPS = [
-  { title: 'Informazioni base', label: 'Info' },
-  { title: 'Posizione', label: 'Posizione' },
-  { title: 'Affitto mensile', label: 'Affitto' },
-  { title: 'Contratto', label: 'Contratto' },
-  { title: 'Caratteristiche e regole', label: 'Dettagli' },
-  { title: 'Chi cerchi', label: 'Preferenze' },
-  { title: 'Foto e coinquilini', label: 'Media' },
-  { title: 'Riepilogo', label: 'Pubblica' },
-];
 
 type PublisherType = 'private' | 'company' | 'sublet';
 type RegistrationMode = 'registered' | 'anonymous';
@@ -528,7 +508,6 @@ export default function PubblicaPage() {
   const [regMode, setRegMode] = useState<RegistrationMode | null>(null);
   const [onboardingPhase, setOnboardingPhase] = useState<OnboardingPhase>('reg-choice');
   const [publisherType, setPublisherType] = useState<PublisherType | null>(null);
-  const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<ListingFormData>(INITIAL_DATA);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -607,8 +586,6 @@ export default function PubblicaPage() {
   }
 
   const updateFormData = (updates: Partial<ListingFormData>) => setFormData((p) => ({ ...p, ...updates }));
-  const handleNext = () => { if (currentStep < LISTING_STEPS.length - 1) { setCurrentStep(currentStep + 1); window.scrollTo(0, 0); } };
-  const handlePrev = () => { if (currentStep > 0) { setCurrentStep(currentStep - 1); window.scrollTo(0, 0); } };
 
   const handleSubmit = async (publish: boolean) => {
     setSubmitting(true);
@@ -664,71 +641,15 @@ export default function PubblicaPage() {
     finally { setSubmitting(false); }
   };
 
-  const renderStep = () => {
-    switch (currentStep) {
-      case 0: return <StepBasicInfo data={formData} onChange={updateFormData} />;
-      case 1: return <StepLocation data={formData} onChange={updateFormData} />;
-      case 2: return <StepPricing data={formData} onChange={updateFormData} />;
-      case 3: return <StepContract data={formData} onChange={updateFormData} />;
-      case 4: return <StepFeatures data={formData} onChange={updateFormData} />;
-      case 5: return <StepPreferences data={formData} onChange={updateFormData} />;
-      case 6: return <StepMedia data={formData} onChange={updateFormData} />;
-      case 7: return <StepReview data={formData} />;
-      default: return null;
-    }
-  };
-
-  const typeLabel = publisherType === 'company' ? 'Azienda' : publisherType === 'sublet' ? 'Subaffitto' : 'Privato';
-
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
-      <div className="flex items-center gap-3 mb-2">
-        <h1 className="text-2xl font-bold text-gray-800">Pubblica annuncio</h1>
-        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary-100 text-primary-700">{typeLabel}</span>
-        {regMode === 'anonymous' && <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">Senza registrazione</span>}
-      </div>
-      <p className="text-gray-500 mb-8">Compila tutti i campi per pubblicare il tuo annuncio</p>
-
-      {regMode === 'anonymous' && (
-        <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200">
-          <p className="text-sm text-amber-800 mb-3"><strong>Pubblicazione senza account:</strong> l&apos;annuncio sar&agrave; attivo per 15 giorni. I candidati potranno contattarti solo via email o telefono.</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="flex items-center gap-2"><Mail className="w-4 h-4 text-amber-600" /><input type="email" placeholder="La tua email *" value={formData.contactEmail || ''} onChange={(e) => updateFormData({ contactEmail: e.target.value })} className="flex-1 px-3 py-2 rounded-lg border border-amber-200 bg-white text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none" /></div>
-            <div className="flex items-center gap-2"><Phone className="w-4 h-4 text-amber-600" /><input type="tel" placeholder="Telefono (opzionale)" value={formData.contactPhone || ''} onChange={(e) => updateFormData({ contactPhone: e.target.value })} className="flex-1 px-3 py-2 rounded-lg border border-amber-200 bg-white text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none" /></div>
-          </div>
-        </div>
-      )}
-
-      <div className="flex items-center mb-8 overflow-x-auto">
-        {LISTING_STEPS.map((step, idx) => (
-          <div key={idx} className="flex items-center">
-            <button onClick={() => idx <= currentStep && setCurrentStep(idx)} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${idx === currentStep ? 'bg-primary-600 text-white' : idx < currentStep ? 'bg-primary-50 text-primary-700 cursor-pointer' : 'bg-gray-100 text-gray-400 cursor-default'}`}>
-              {idx < currentStep ? <CheckCircle className="w-4 h-4" /> : <span className="w-5 h-5 rounded-full border-2 flex items-center justify-center text-xs">{idx + 1}</span>}
-              {step.label}
-            </button>
-            {idx < LISTING_STEPS.length - 1 && <div className={`w-8 h-0.5 mx-1 ${idx < currentStep ? 'bg-primary-300' : 'bg-gray-200'}`} />}
-          </div>
-        ))}
-      </div>
-
-      <h2 className="text-xl font-semibold text-gray-800 mb-6">{LISTING_STEPS[currentStep].title}</h2>
-      {error && <div className="mb-6 p-4 bg-red-50 rounded-xl text-red-700 text-sm">{error}</div>}
-
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">{renderStep()}</div>
-
-      <div className="flex justify-between items-center">
-        <button onClick={() => { if (currentStep === 0) setOnboardingPhase('setup'); else handlePrev(); }} className="flex items-center gap-2 px-6 py-3 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors"><ChevronLeft className="w-5 h-5" />Indietro</button>
-        <div className="flex gap-3">
-          {currentStep === LISTING_STEPS.length - 1 ? (
-            <>
-              {regMode !== 'anonymous' && <button onClick={() => handleSubmit(false)} disabled={submitting} className="flex items-center gap-2 px-6 py-3 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 disabled:opacity-50 transition-colors"><Save className="w-5 h-5" />Salva bozza</button>}
-              <button onClick={() => handleSubmit(true)} disabled={submitting} className="flex items-center gap-2 px-6 py-3 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold disabled:opacity-50 transition-colors">{submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}Pubblica</button>
-            </>
-          ) : (
-            <button onClick={handleNext} className="flex items-center gap-2 px-6 py-3 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold transition-colors">Avanti<ChevronRight className="w-5 h-5" /></button>
-          )}
-        </div>
-      </div>
-    </div>
+    <ListingWizard
+      data={formData}
+      onChange={updateFormData}
+      onSubmit={handleSubmit}
+      submitting={submitting}
+      error={error}
+      regMode={regMode || 'registered'}
+      onBack={() => setOnboardingPhase('setup')}
+    />
   );
 }

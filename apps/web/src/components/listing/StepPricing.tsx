@@ -14,10 +14,10 @@ export function StepPricing({ data, onChange }: StepPricingProps) {
   };
 
   return (
-    <div className="space-y-8">
-      {/* Main pricing */}
-      <div>
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Affitto mensile</h3>
+    <div className="space-y-5">
+      {/* Card: Affitto mensile */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <h3 className="text-base font-semibold text-gray-800 mb-4">💰 Affitto mensile</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -58,12 +58,13 @@ export function StepPricing({ data, onChange }: StepPricingProps) {
         </div>
       </div>
 
-      {/* All inclusive toggle */}
-      <div>
+      {/* Card: Modalità prezzo */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <h3 className="text-base font-semibold text-gray-800 mb-4">📊 Dettaglio spese</h3>
         <button
           type="button"
           onClick={() => updatePricing({ allInclusive: !data.pricing.allInclusive })}
-          className={`flex items-center gap-3 px-5 py-3 rounded-xl border-2 transition-colors w-full ${
+          className={`flex items-center gap-3 px-5 py-3 rounded-xl border-2 transition-colors w-full mb-4 ${
             data.pricing.allInclusive
               ? 'border-green-500 bg-green-50 text-green-700'
               : 'border-gray-200 text-gray-600 hover:border-gray-300'
@@ -75,91 +76,87 @@ export function StepPricing({ data, onChange }: StepPricingProps) {
             <span className="text-xs opacity-75">L&apos;affitto include già tutte le spese</span>
           </div>
         </button>
+
+        {!data.pricing.allInclusive && (
+          <div>
+            <p className="text-sm text-gray-500 mb-4">
+              Quanto paga in media il singolo coinquilino? (opzionale)
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <label className="flex items-center gap-1 text-sm font-medium text-gray-700 mb-1">
+                  <Zap className="w-4 h-4 text-yellow-500" />
+                  Luce/Gas
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={data.pricing.electricityGas ?? ''}
+                  onChange={(e) => updatePricing({ electricityGas: e.target.value ? parseInt(e.target.value) : null })}
+                  placeholder="€/mese"
+                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+              <div>
+                <label className="flex items-center gap-1 text-sm font-medium text-gray-700 mb-1">
+                  <Droplets className="w-4 h-4 text-blue-500" />
+                  Acqua
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={data.pricing.water ?? ''}
+                  onChange={(e) => updatePricing({ water: e.target.value ? parseInt(e.target.value) : null })}
+                  placeholder="€/mese"
+                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+              <div>
+                <label className="flex items-center gap-1 text-sm font-medium text-gray-700 mb-1">
+                  <Flame className="w-4 h-4 text-orange-500" />
+                  Riscaldamento
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={data.pricing.heatingCost ?? ''}
+                  onChange={(e) => updatePricing({ heatingCost: e.target.value ? parseInt(e.target.value) : null })}
+                  placeholder="€/mese"
+                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+              <div>
+                <label className="flex items-center gap-1 text-sm font-medium text-gray-700 mb-1">
+                  <Building2 className="w-4 h-4 text-gray-500" />
+                  Condominio
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={data.pricing.condominiumFees ?? ''}
+                  onChange={(e) => updatePricing({ condominiumFees: e.target.value ? parseInt(e.target.value) : null })}
+                  placeholder="€/mese"
+                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+            </div>
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Note sulle spese</label>
+              <textarea
+                value={data.pricing.expenseNotes}
+                onChange={(e) => updatePricing({ expenseNotes: e.target.value })}
+                placeholder="es. Riscaldamento centralizzato, Internet incluso nel condominio..."
+                rows={2}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Expense breakdown */}
-      {!data.pricing.allInclusive && (
-        <div>
-          <h3 className="text-lg font-semibold text-gray-800 mb-2">Dettaglio spese</h3>
-          <p className="text-sm text-gray-500 mb-4">
-            Quanto paga in media il singolo coinquilino? (opzionale)
-          </p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-              <label className="flex items-center gap-1 text-sm font-medium text-gray-700 mb-1">
-                <Zap className="w-4 h-4 text-yellow-500" />
-                Luce/Gas
-              </label>
-              <input
-                type="number"
-                min={0}
-                value={data.pricing.electricityGas ?? ''}
-                onChange={(e) => updatePricing({ electricityGas: e.target.value ? parseInt(e.target.value) : null })}
-                placeholder="€/mese"
-                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-            <div>
-              <label className="flex items-center gap-1 text-sm font-medium text-gray-700 mb-1">
-                <Droplets className="w-4 h-4 text-blue-500" />
-                Acqua
-              </label>
-              <input
-                type="number"
-                min={0}
-                value={data.pricing.water ?? ''}
-                onChange={(e) => updatePricing({ water: e.target.value ? parseInt(e.target.value) : null })}
-                placeholder="€/mese"
-                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-            <div>
-              <label className="flex items-center gap-1 text-sm font-medium text-gray-700 mb-1">
-                <Flame className="w-4 h-4 text-orange-500" />
-                Riscaldamento
-              </label>
-              <input
-                type="number"
-                min={0}
-                value={data.pricing.heatingCost ?? ''}
-                onChange={(e) => updatePricing({ heatingCost: e.target.value ? parseInt(e.target.value) : null })}
-                placeholder="€/mese"
-                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-            <div>
-              <label className="flex items-center gap-1 text-sm font-medium text-gray-700 mb-1">
-                <Building2 className="w-4 h-4 text-gray-500" />
-                Condominio
-              </label>
-              <input
-                type="number"
-                min={0}
-                value={data.pricing.condominiumFees ?? ''}
-                onChange={(e) => updatePricing({ condominiumFees: e.target.value ? parseInt(e.target.value) : null })}
-                placeholder="€/mese"
-                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-          </div>
-
-          {/* Expense notes */}
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Note sulle spese</label>
-            <textarea
-              value={data.pricing.expenseNotes}
-              onChange={(e) => updatePricing({ expenseNotes: e.target.value })}
-              placeholder="es. Riscaldamento centralizzato, Internet incluso nel condominio..."
-              rows={2}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Cleaning */}
-      <div>
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Pulizie</h3>
+      {/* Card: Pulizie */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <h3 className="text-base font-semibold text-gray-800 mb-4">✨ Pulizie</h3>
         <button
           type="button"
           onClick={() => updatePricing({ cleaningIncluded: !data.pricing.cleaningIncluded })}
@@ -215,7 +212,7 @@ export function StepPricing({ data, onChange }: StepPricingProps) {
       </div>
 
       {/* Info banner */}
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex gap-3">
+      <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex gap-3">
         <Info className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
         <div className="text-sm text-blue-800">
           <p className="font-medium mb-1">Trasparenza sui costi</p>

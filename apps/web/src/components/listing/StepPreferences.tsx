@@ -35,12 +35,12 @@ export function StepPreferences({ data, onChange }: StepPreferencesProps) {
   };
 
   return (
-    <div className="space-y-8">
-      {/* Gender preference */}
-      <div>
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">
+    <div className="space-y-5">
+      {/* Card: Genere preferito */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <h3 className="text-base font-semibold text-gray-800 mb-1">
           <UserCheck className="w-5 h-5 inline-block mr-2" />
-          Genere preferito
+          👤 Genere preferito
         </h3>
         <p className="text-sm text-gray-500 mb-4">Seleziona il genere del coinquilino ideale</p>
         <div className="grid grid-cols-3 gap-3">
@@ -61,56 +61,26 @@ export function StepPreferences({ data, onChange }: StepPreferencesProps) {
         </div>
       </div>
 
-      {/* Age range */}
-      <div>
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Fascia di età</h3>
+      {/* Card: Fascia di età */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <h3 className="text-base font-semibold text-gray-800 mb-4">🎂 Fascia di età</h3>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Età minima</label>
-            <input
-              type="number"
-              min={18}
-              max={99}
-              value={data.preferences.ageMin ?? ''}
-              onChange={(e) =>
-                onChange({
-                  preferences: {
-                    ...data.preferences,
-                    ageMin: e.target.value ? parseInt(e.target.value) : null,
-                  },
-                })
-              }
-              placeholder="18"
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
+            <input type="number" min={18} max={99} value={data.preferences.ageMin ?? ''} onChange={(e) => onChange({ preferences: { ...data.preferences, ageMin: e.target.value ? parseInt(e.target.value) : null } })} placeholder="18" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Età massima</label>
-            <input
-              type="number"
-              min={18}
-              max={99}
-              value={data.preferences.ageMax ?? ''}
-              onChange={(e) =>
-                onChange({
-                  preferences: {
-                    ...data.preferences,
-                    ageMax: e.target.value ? parseInt(e.target.value) : null,
-                  },
-                })
-              }
-              placeholder="45"
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
+            <input type="number" min={18} max={99} value={data.preferences.ageMax ?? ''} onChange={(e) => onChange({ preferences: { ...data.preferences, ageMax: e.target.value ? parseInt(e.target.value) : null } })} placeholder="45" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500" />
           </div>
         </div>
       </div>
 
-      {/* Occupation */}
-      <div>
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">
+      {/* Card: Occupazione */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <h3 className="text-base font-semibold text-gray-800 mb-1">
           <Briefcase className="w-5 h-5 inline-block mr-2" />
-          Occupazione
+          💼 Occupazione
         </h3>
         <p className="text-sm text-gray-500 mb-4">Puoi selezionare più opzioni</p>
         <div className="grid grid-cols-3 gap-3">
@@ -131,7 +101,8 @@ export function StepPreferences({ data, onChange }: StepPreferencesProps) {
         </div>
       </div>
 
-      <div className="bg-blue-50 rounded-xl p-4 text-sm text-blue-700">
+      {/* Info banner */}
+      <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-sm text-blue-700">
         Queste preferenze sono indicative e aiutano i cercatori a trovare annunci compatibili.
         Non sono vincolanti.
       </div>
