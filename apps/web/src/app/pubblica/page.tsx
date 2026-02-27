@@ -92,7 +92,7 @@ export interface ListingFormData {
     outOfTownOnly: boolean;
     outOfTownNote: string;
   };
-  images: { url: string; caption?: string }[];
+  images: { url: string; thumbnailUrl?: string; caption?: string }[];
   videoUrl: string;
   roommates: { name: string; age?: number; gender?: string; occupation?: string; bio?: string }[];
   publisherType?: 'private' | 'company' | 'sublet';
@@ -276,7 +276,6 @@ function OnboardingSetup({
             name: regName,
             email: regEmail,
             password: regPassword,
-            userType: 'landlord',
           }),
         });
         const data = await res.json();
@@ -550,7 +549,7 @@ export default function PubblicaPage() {
     );
   }
 
-  if (publisherType === 'company' && (!session || session.user.role !== 'landlord')) {
+  if (publisherType === 'company' && !session) {
     // Company users who somehow lost their session — redirect back to setup for inline re-registration
     return (
       <OnboardingSetup

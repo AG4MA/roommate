@@ -1,19 +1,68 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import {
   Menu, X, Home, LogIn, CalendarCheck, UserCircle,
   Building2, LogOut, ChevronDown, Users, Heart,
+  MessageCircle, Bell, Shield, BadgeCheck,
 } from 'lucide-react';
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const { data: session, status } = useSession();
 
   const isLoggedIn = status === 'authenticated' && session?.user;
+
+  // Fetch unread count + SSE for real-time updates
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    // Initial fetch
+    const fetchUnread = async () => {
+      try {
+        const res = await fetch('/api/conversations');
+        const json = await res.json();
+        if (json.success && json.data) {
+          const total = json.data.reduce((sum: number, c: any) => sum + (c.unreadCount || 0), 0);
+          setUnreadCount(total);
+        }
+      } catch { /* silent */ }
+    };
+    fetchUnread();
+
+    // SSE for live updates
+    let es: EventSource | null = null;
+    try {
+      es = new EventSource('/api/notifications/stream');
+      es.addEventListener('unread-count', (e) => {
+        const data = JSON.parse(e.data);
+        if (typeof data.totalUnread === 'number') {
+          setUnreadCount(data.totalUnread);
+        }
+      });
+      es.onerror = () => {
+        // Reconnect automatically
+      };
+    } catch { /* SSE not supported */ }
+
+    // Also poll every 60s as fallback
+    const interval = setInterval(fetchUnread, 60000);
+
+    return () => {
+      clearInterval(interval);
+      es?.close();
+    };
+  }, [isLoggedIn]);
+
+  // Update document title with unread badge
+  useEffect(() => {
+    const baseTitle = 'rooMate';
+    document.title = unreadCount > 0 ? `(${unreadCount}) ${baseTitle}` : baseTitle;
+  }, [unreadCount]);
 
   return (
     <nav className="bg-white shadow-sm sticky top-0 z-50">
@@ -58,11 +107,30 @@ export function Navbar() {
                   <Heart className="w-5 h-5" />
                 </Link>
                 <Link
+                  href="/messaggi"
+                  className="relative flex items-center gap-2 text-gray-600 hover:text-primary-600 transition-colors"
+                  title="Messaggi"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                </Link>
+                <Link
                   href="/appuntamenti"
                   className="flex items-center gap-2 text-gray-600 hover:text-primary-600 transition-colors"
                   title="Appuntamenti"
                 >
                   <CalendarCheck className="w-5 h-5" />
+                </Link>
+                <Link
+                  href="/notifiche"
+                  className="flex items-center gap-2 text-gray-600 hover:text-primary-600 transition-colors"
+                  title="Notifiche"
+                >
+                  <Bell className="w-5 h-5" />
                 </Link>
 
                 {/* Profile Dropdown */}
@@ -116,6 +184,24 @@ export function Navbar() {
                         >
                           <Building2 className="w-4 h-4" />
                           I miei annunci
+                        </Link>
+
+                        <Link
+                          href="/profilo/account"
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          onClick={() => setIsProfileOpen(false)}
+                        >
+                          <Shield className="w-4 h-4" />
+                          Impostazioni account
+                        </Link>
+
+                        <Link
+                          href="/certificazioni"
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          onClick={() => setIsProfileOpen(false)}
+                        >
+                          <BadgeCheck className="w-4 h-4" />
+                          Certificazioni
                         </Link>
 
                         <hr className="my-1" />
@@ -213,11 +299,30 @@ export function Navbar() {
                     Mi interessa
                   </Link>
                   <Link
+                    href="/messaggi"
+                    className="text-gray-600 hover:text-primary-600 transition-colors flex items-center gap-2"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Messaggi
+                    {unreadCount > 0 && (
+                      <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </Link>
+                  <Link
                     href="/appuntamenti"
                     className="text-gray-600 hover:text-primary-600 transition-colors"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Appuntamenti
+                  </Link>
+                  <Link
+                    href="/notifiche"
+                    className="text-gray-600 hover:text-primary-600 transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Notifiche
                   </Link>
                   <Link
                     href="/profilo/inquilino"
@@ -232,6 +337,20 @@ export function Navbar() {
                     onClick={() => setIsMenuOpen(false)}
                   >
                     I miei annunci
+                  </Link>
+                  <Link
+                    href="/profilo/account"
+                    className="text-gray-600 hover:text-primary-600 transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Impostazioni account
+                  </Link>
+                  <Link
+                    href="/certificazioni"
+                    className="text-gray-600 hover:text-primary-600 transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Certificazioni
                   </Link>
                   <hr className="my-2" />
                   <button

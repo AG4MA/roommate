@@ -3,6 +3,7 @@ import type { ApiResponse } from '@roommate/shared';
 import { prisma } from '@roommate/database';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { notifyInterestReceived } from '@/lib/notifications';
 
 const DEFAULT_MAX_INTERESTS = 3;
 
@@ -68,13 +69,6 @@ export async function POST(
       );
     }
 
-    if (session.user.role === 'landlord') {
-      return NextResponse.json<ApiResponse<null>>(
-        { success: false, error: 'I proprietari non possono esprimere interesse' },
-        { status: 403 }
-      );
-    }
-
     // Check if listing exists and is active or queue_full (for waiting list)
     const listing = await prisma.listing.findUnique({
       where: { id: listingId },
@@ -85,6 +79,14 @@ export async function POST(
       return NextResponse.json<ApiResponse<null>>(
         { success: false, error: 'Annuncio non trovato o non disponibile' },
         { status: 404 }
+      );
+    }
+
+    // Cannot express interest on your own listing
+    if (listing.landlordId === session.user.id) {
+      return NextResponse.json<ApiResponse<null>>(
+        { success: false, error: 'Non puoi esprimere interesse per il tuo annuncio' },
+        { status: 403 }
       );
     }
 
@@ -240,6 +242,28 @@ export async function POST(
       : groupId
       ? 'Interesse del gruppo registrato con successo'
       : 'Interesse registrato con successo';
+
+    // Send notification to landlord (email + push)
+    if (listing.landlordId) {
+      const tenant = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { name: true },
+      });
+      const listingDetail = await prisma.listing.findUnique({
+        where: { id: listingId },
+        select: { title: true },
+      });
+
+      if (tenant && listingDetail) {
+        notifyInterestReceived(
+          listing.landlordId,
+          tenant.name,
+          listingDetail.title,
+          listingId,
+          position
+        ).catch(err => console.error('[NOTIFY ERROR]', err));
+      }
+    }
 
     return NextResponse.json<ApiResponse<InterestData>>({
       success: true,

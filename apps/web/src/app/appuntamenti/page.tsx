@@ -170,8 +170,22 @@ export default function AppuntamentiPage() {
                   )}
                 </div>
 
-                {/* Tenant Profile Card (only for landlords) */}
-                {session?.user?.role === 'landlord' && booking.tenant && (
+                {/* Cancel button for tenant's own PENDING bookings */}
+                {booking.tenant?.id === session?.user?.id && booking.status === 'PENDING' && (
+                  <div className="px-6 pb-6">
+                    <button
+                      onClick={() => handleAction(booking.id, 'CANCELLED')}
+                      disabled={acting === `${booking.id}-CANCELLED`}
+                      className="py-2 px-4 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 text-sm font-medium flex items-center gap-2 transition-colors disabled:opacity-50"
+                    >
+                      {acting === `${booking.id}-CANCELLED` ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                      Annulla prenotazione
+                    </button>
+                  </div>
+                )}
+
+                {/* Tenant Profile Card (only for listing owner) */}
+                {session?.user?.id && (booking.listing as any).landlordId === session.user.id && booking.tenant && (
                   <div className="p-6">
                     <h4 className="text-sm font-medium text-gray-400 uppercase tracking-wide mb-3">
                       Profilo inquilino
@@ -180,8 +194,8 @@ export default function AppuntamentiPage() {
                   </div>
                 )}
 
-                {/* Action Buttons (landlord actions) */}
-                {session?.user?.role === 'landlord' && booking.status === 'PENDING' && (
+                {/* Action Buttons (listing owner actions) */}
+                {session?.user?.id && (booking.listing as any).landlordId === session.user.id && booking.status === 'PENDING' && (
                   <div className="px-6 pb-6 flex gap-3">
                     <button
                       onClick={() => handleAction(booking.id, 'CONFIRMED')}
@@ -201,7 +215,7 @@ export default function AppuntamentiPage() {
                     </button>
                   </div>
                 )}
-                {session?.user?.role === 'landlord' && booking.status === 'CONFIRMED' && (
+                {session?.user?.id && (booking.listing as any).landlordId === session.user.id && booking.status === 'CONFIRMED' && (
                   <div className="px-6 pb-6 flex gap-3">
                     <button
                       onClick={() => handleAction(booking.id, 'NO_SHOW')}

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { ApiResponse } from '@roommate/shared';
 import { prisma } from '@roommate/database';
+import { notify } from '@/lib/notifications';
 
 const LISTING_DURATION_DAYS = 30;
 const WARNING_DAYS_BEFORE = 5; // 25 days = 30 - 5
@@ -35,6 +36,21 @@ export async function POST(request: Request) {
     warningDate.setDate(warningDate.getDate() + WARNING_DAYS_BEFORE);
 
     // 1. Expire listings past their expiry date
+    const expiredListings = await prisma.listing.findMany({
+      where: {
+        status: 'ACTIVE',
+        expiresAt: {
+          lte: now,
+        },
+      },
+      select: {
+        id: true,
+        title: true,
+        landlordId: true,
+        landlord: { select: { email: true, name: true } },
+      },
+    });
+
     const expiredResult = await prisma.listing.updateMany({
       where: {
         status: 'ACTIVE',
@@ -60,6 +76,17 @@ export async function POST(request: Request) {
       },
     });
 
+    // Send expired notifications (email + push)
+    for (const listing of expiredListings) {
+      if (listing.landlordId) {
+        notify({
+          userId: listing.landlordId,
+          type: 'LISTING_EXPIRED',
+          data: { listingTitle: listing.title, listingId: listing.id },
+        }).catch(err => console.error('[NOTIFY ERROR]', err));
+      }
+    }
+
     // 2. Find listings expiring soon (for notifications)
     const expiringListings = await prisma.listing.findMany({
       where: {
@@ -83,13 +110,16 @@ export async function POST(request: Request) {
       },
     });
 
-    // TODO: Send email notifications to landlords about expiring listings
-    // For now, just log the warnings
+    // Send expiring warning notifications (email + push)
     for (const listing of expiringListings) {
-      console.log(
-        `[Expiry Warning] Listing "${listing.title}" (${listing.id}) expires at ${listing.expiresAt?.toISOString()}. ` +
-        `Landlord: ${listing.landlord?.email}`
-      );
+      if (listing.landlordId && listing.expiresAt) {
+        const daysLeft = Math.ceil((listing.expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        notify({
+          userId: listing.landlordId,
+          type: 'LISTING_EXPIRING',
+          data: { listingTitle: listing.title, listingId: listing.id, daysLeft },
+        }).catch(err => console.error('[NOTIFY ERROR]', err));
+      }
     }
 
     const result: ExpiryCheckResult = {

@@ -3,6 +3,7 @@ import type { ApiResponse } from '@roommate/shared';
 import { prisma } from '@roommate/database';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { notifyInterestApproved } from '@/lib/notifications';
 
 const DEFAULT_MAX_INTERESTS = 3;
 
@@ -267,6 +268,18 @@ export async function POST(
           where: { id: interest.id },
           data: { schedulingApproved: true },
         });
+
+        // Notify tenant that they can now schedule a visit
+        if (tenantId) {
+          const listingDetail = await prisma.listing.findUnique({
+            where: { id: listingId },
+            select: { title: true },
+          });
+          if (listingDetail) {
+            notifyInterestApproved(tenantId, listingDetail.title, listingId)
+              .catch(err => console.error('[NOTIFY ERROR]', err));
+          }
+        }
 
         return NextResponse.json<ApiResponse<null>>({
           success: true,

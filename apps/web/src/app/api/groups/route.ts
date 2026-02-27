@@ -89,13 +89,6 @@ export async function POST(request: Request) {
       );
     }
 
-    if (session.user.role === 'landlord') {
-      return NextResponse.json<ApiResponse<null>>(
-        { success: false, error: 'Solo gli inquilini possono creare gruppi' },
-        { status: 403 }
-      );
-    }
-
     const body = await request.json();
     const parsed = createGroupSchema.safeParse(body);
 

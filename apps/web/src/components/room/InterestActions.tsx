@@ -6,6 +6,7 @@ import { Heart, HandHeart, Loader2, Check, Clock, AlertTriangle, Users } from 'l
 
 interface InterestActionsProps {
   listingId: string;
+  landlordId?: string;
 }
 
 interface InterestStatus {
@@ -24,7 +25,7 @@ interface InterestStatus {
   maxUserInterests?: number;
 }
 
-export function InterestActions({ listingId }: InterestActionsProps) {
+export function InterestActions({ listingId, landlordId }: InterestActionsProps) {
   const { data: session } = useSession();
   const [status, setStatus] = useState<InterestStatus | null>(null);
   const [isSaved, setIsSaved] = useState(false);
@@ -143,7 +144,7 @@ export function InterestActions({ listingId }: InterestActionsProps) {
     );
   }
 
-  const isLandlord = session?.user?.role === 'landlord';
+  const isOwner = !!(session?.user?.id && landlordId && session.user.id === landlordId);
   const userInterest = status?.userInterest;
   const queueFull = status?.queueFull ?? false;
   const activeCount = status?.activeCount ?? 0;
@@ -176,7 +177,7 @@ export function InterestActions({ listingId }: InterestActionsProps) {
       </div>
 
       {/* Interest state */}
-      {!isLandlord && (
+      {!isOwner && (
         <>
           {userInterest ? (
             <div className="space-y-2">

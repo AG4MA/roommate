@@ -13,6 +13,8 @@ import {
   Users,
   CheckCircle,
   CalendarCheck,
+  XCircle,
+  Eye,
 } from 'lucide-react';
 import type { ApiResponse } from '@roommate/shared';
 
@@ -65,6 +67,7 @@ export default function MiInteressaPage() {
   const [interests, setInterests] = useState<InterestItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [withdrawing, setWithdrawing] = useState<string | null>(null);
 
   useEffect(() => {
     if (authStatus === 'unauthenticated') {
@@ -92,6 +95,31 @@ export default function MiInteressaPage() {
     }
   };
 
+  const handleWithdraw = async (listingId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!confirm('Sei sicuro di voler ritirare il tuo interesse? Non potrai re-esprimerlo per 24 ore.')) {
+      return;
+    }
+
+    setWithdrawing(listingId);
+    try {
+      const res = await fetch(`/api/listings/${listingId}/interest`, {
+        method: 'DELETE',
+      });
+      const json = await res.json();
+      if (json.success) {
+        setInterests((prev) => prev.filter((i) => i.listing.id !== listingId));
+      } else {
+        alert(json.error || 'Errore nel ritiro dell\'interesse');
+      }
+    } catch {
+      alert('Errore di rete');
+    }
+    setWithdrawing(null);
+  };
+
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
@@ -109,7 +137,7 @@ export default function MiInteressaPage() {
           Mi interessa
         </h1>
         <p className="text-gray-500 mt-1">
-          Le stanze a cui hai espresso interesse
+          Le stanze a cui hai espresso interesse ({interests.length}/8)
         </p>
       </div>
 
@@ -213,6 +241,40 @@ export default function MiInteressaPage() {
                           Posizione: {interest.position}
                         </span>
                       )}
+                    </div>
+
+                    {/* Quick Actions */}
+                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+                      <Link
+                        href={`/stanza/${listing.id}`}
+                        className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        Dettaglio
+                      </Link>
+                      {interest.schedulingApproved && (
+                        <Link
+                          href={`/booking/${listing.id}`}
+                          className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <CalendarCheck className="w-3.5 h-3.5" />
+                          Prenota visita
+                        </Link>
+                      )}
+                      <button
+                        onClick={(e) => handleWithdraw(listing.id, e)}
+                        disabled={withdrawing === listing.id}
+                        className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 ml-auto"
+                      >
+                        {withdrawing === listing.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <XCircle className="w-3.5 h-3.5" />
+                        )}
+                        Ritira
+                      </button>
                     </div>
                   </div>
                 </div>

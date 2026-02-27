@@ -8,6 +8,7 @@ import {
 import { InterestActions } from '@/components/room/InterestActions';
 import { RoommateCard } from '@/components/room/RoommateCard';
 import { MiniMap } from '@/components/room/MiniMap';
+import { ListingReviews } from '@/components/room/ListingReviews';
 import { prisma } from '@roommate/database';
 import { getRoomTypeLabel } from '@roommate/shared';
 import type { ListingDetail } from '@roommate/shared';
@@ -124,8 +125,22 @@ async function getListingDetail(id: string): Promise<ListingDetail | null> {
     views: listing.views,
     createdAt: listing.createdAt.toISOString(),
     publishedAt: listing.publishedAt?.toISOString() ?? null,
+    avgRating: null as number | null, // will be set below
+    reviewCount: 0,
   };
-}
+
+  // Fetch review aggregate
+  try {
+    const aggregate = await (prisma as any).review.aggregate({
+      where: { listingId: id, hidden: false },
+      _avg: { rating: true },
+      _count: { rating: true },
+    });
+    result.avgRating = aggregate._avg.rating ? Math.round(aggregate._avg.rating * 10) / 10 : null;
+    result.reviewCount = aggregate._count.rating;
+  } catch { /* ignore on fresh DB */ }
+
+  return result;
 
 export default async function StanzaPage({ params }: { params: { id: string } }) {
   const listing = await getListingDetail(params.id);
@@ -287,7 +302,7 @@ export default async function StanzaPage({ params }: { params: { id: string } })
           <div className="sticky top-24 space-y-4">
             {/* Interest & Save Actions */}
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-              <InterestActions listingId={listing.id} />
+              <InterestActions listingId={listing.id} landlordId={listing.landlord.id} />
             </div>
 
             {/* Price recap card */}

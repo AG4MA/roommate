@@ -84,7 +84,7 @@ export interface ListingCard {
   roomType: 'SINGLE' | 'DOUBLE' | 'STUDIO' | 'ENTIRE_PLACE';
   roomSize: number;
   availableFrom: string;
-  images: { url: string }[];
+  images: { url: string; thumbnailUrl?: string | null }[];
   features: {
     wifi: boolean;
     furnished: boolean;
@@ -94,6 +94,8 @@ export interface ListingCard {
   maxRoommates: number;
   latitude: number;
   longitude: number;
+  avgRating?: number | null;
+  reviewCount?: number;
 }
 
 export interface ListingDetail extends ListingCard {

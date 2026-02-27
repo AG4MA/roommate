@@ -55,7 +55,7 @@ export async function GET(
       availableFrom: listing.availableFrom.toISOString(),
       minStay: listing.minStay,
       maxStay: listing.maxStay,
-      images: listing.images.map((img) => ({ url: img.url })),
+      images: listing.images.map((img) => ({ url: img.url, thumbnailUrl: img.thumbnailUrl })),
       features: {
         wifi: listing.features?.wifi ?? false,
         furnished: listing.features?.furnished ?? false,

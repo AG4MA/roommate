@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
   Save,
   Euro,
@@ -13,6 +14,8 @@ import {
   Languages,
   CheckCircle,
   Loader2,
+  BadgeCheck,
+  Settings,
 } from 'lucide-react';
 
 const contractTypeOptions = [
@@ -61,6 +64,13 @@ export default function ProfiloInquilinoPage() {
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [completionPct, setCompletionPct] = useState<number | null>(null);
+  const [verifications, setVerifications] = useState<{
+    emailVerified: boolean;
+    idVerified: boolean;
+    employmentVerified: boolean;
+    incomeVerified: boolean;
+  } | null>(null);
   const [form, setForm] = useState<FormData>({
     budgetMin: '',
     budgetMax: '',
@@ -78,10 +88,12 @@ export default function ProfiloInquilinoPage() {
   useEffect(() => {
     async function loadProfile() {
       try {
-        // TODO: Replace with session user ID (Phase 1)
-        const res = await fetch('/api/profile/tenant?userId=demo');
-        const json = await res.json();
+        const [profileRes, completionRes] = await Promise.all([
+          fetch('/api/profile/tenant?userId=demo'),
+          fetch('/api/profile/completion'),
+        ]);
 
+        const json = await profileRes.json();
         if (json.success && json.data) {
           const d = json.data;
           setForm({
@@ -96,6 +108,12 @@ export default function ProfiloInquilinoPage() {
             referencesAvailable: d.referencesAvailable ?? false,
             languages: d.languages ?? [],
           });
+        }
+
+        const compJson = await completionRes.json();
+        if (compJson.success && compJson.data) {
+          setCompletionPct(compJson.data.percentage);
+          setVerifications(compJson.data.verifications);
         }
       } catch (err) {
         // Profile not found or not logged in - use defaults
@@ -183,6 +201,71 @@ export default function ProfiloInquilinoPage() {
           Queste informazioni verranno mostrate ai proprietari quando li
           contatti. Compila il profilo per aumentare le tue possibilità.
         </p>
+
+        {/* Profile Completion Bar */}
+        {completionPct !== null && (
+          <div className="mt-4 bg-white rounded-xl border border-gray-100 p-4">
+            <div className="flex justify-between items-center text-sm mb-2">
+              <span className="text-gray-600 flex items-center gap-1.5">
+                <BadgeCheck className="w-4 h-4 text-primary-600" />
+                Completamento profilo
+              </span>
+              <span className="font-semibold text-primary-600">{completionPct}%</span>
+            </div>
+            <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  completionPct >= 80
+                    ? 'bg-green-500'
+                    : completionPct >= 50
+                      ? 'bg-amber-500'
+                      : 'bg-red-500'
+                }`}
+                style={{ width: `${completionPct}%` }}
+              />
+            </div>
+            {verifications && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {verifications.emailVerified && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-700 rounded-full text-xs font-medium">
+                    <CheckCircle className="w-3 h-3" /> Email
+                  </span>
+                )}
+                {verifications.idVerified && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-700 rounded-full text-xs font-medium">
+                    <CheckCircle className="w-3 h-3" /> Identità
+                  </span>
+                )}
+                {verifications.employmentVerified && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-700 rounded-full text-xs font-medium">
+                    <CheckCircle className="w-3 h-3" /> Impiego
+                  </span>
+                )}
+                {verifications.incomeVerified && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-700 rounded-full text-xs font-medium">
+                    <CheckCircle className="w-3 h-3" /> Reddito
+                  </span>
+                )}
+              </div>
+            )}
+            <div className="flex gap-3 mt-3">
+              <Link
+                href="/certificazioni"
+                className="text-sm text-primary-600 hover:underline flex items-center gap-1"
+              >
+                <Shield className="w-3.5 h-3.5" />
+                Certificazioni
+              </Link>
+              <Link
+                href="/profilo/account"
+                className="text-sm text-primary-600 hover:underline flex items-center gap-1"
+              >
+                <Settings className="w-3.5 h-3.5" />
+                Impostazioni account
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">

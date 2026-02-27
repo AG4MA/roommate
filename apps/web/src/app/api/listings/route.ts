@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { ApiResponse, PaginatedResponse, ListingCard, ListingDetail } from '@roommate/shared';
 import { createListingSchema } from '@roommate/shared';
+import { matchListingAgainstWishes } from '@/lib/wish-matcher';
 import { prisma } from '@roommate/database';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -70,41 +71,52 @@ export async function GET(request: Request) {
           images: { orderBy: { order: 'asc' }, take: 3 },
           features: true,
           roommates: true,
+          reviews: { where: { hidden: false }, select: { rating: true } },
         },
       }),
       prisma.listing.count({ where }),
     ]);
 
-    const items = listings.map((l) => ({
-      id: l.id,
-      title: l.title,
-      address: l.address,
-      city: l.city,
-      neighborhood: l.neighborhood,
-      price: l.price,
-      expenses: l.expenses,
-      roomType: l.roomType,
-      roomSize: l.roomSize,
-      availableFrom: l.availableFrom.toISOString(),
-      images: l.images.map((img) => ({ url: img.url })),
-      features: {
-        wifi: l.features?.wifi ?? false,
-        furnished: l.features?.furnished ?? false,
-        privateBath: l.features?.privateBath ?? false,
-      },
-      currentRoommates: l.roommates.length,
-      maxRoommates: l.roommates.length + 1,
-      latitude: l.latitude,
-      longitude: l.longitude,
-      // Extra fields for landlord dashboard
-      ...(mine ? {
-        status: l.status,
-        views: l.views,
-        publishedAt: l.publishedAt?.toISOString() ?? null,
-        expiresAt: l.expiresAt?.toISOString() ?? null,
-        createdAt: l.createdAt.toISOString(),
-      } : {}),
-    }));
+    const items = listings.map((l) => {
+      const visibleReviews = (l as any).reviews || [];
+      const reviewCount = visibleReviews.length;
+      const avgRating = reviewCount > 0
+        ? Math.round((visibleReviews.reduce((sum: number, r: any) => sum + r.rating, 0) / reviewCount) * 10) / 10
+        : null;
+
+      return {
+        id: l.id,
+        title: l.title,
+        address: l.address,
+        city: l.city,
+        neighborhood: l.neighborhood,
+        price: l.price,
+        expenses: l.expenses,
+        roomType: l.roomType,
+        roomSize: l.roomSize,
+        availableFrom: l.availableFrom.toISOString(),
+        images: l.images.map((img) => ({ url: img.url, thumbnailUrl: img.thumbnailUrl })),
+        features: {
+          wifi: l.features?.wifi ?? false,
+          furnished: l.features?.furnished ?? false,
+          privateBath: l.features?.privateBath ?? false,
+        },
+        currentRoommates: l.roommates.length,
+        maxRoommates: l.roommates.length + 1,
+        latitude: l.latitude,
+        longitude: l.longitude,
+        avgRating,
+        reviewCount,
+        // Extra fields for landlord dashboard
+        ...(mine ? {
+          status: l.status,
+          views: l.views,
+          publishedAt: l.publishedAt?.toISOString() ?? null,
+          expiresAt: l.expiresAt?.toISOString() ?? null,
+          createdAt: l.createdAt.toISOString(),
+        } : {}),
+      };
+    });
 
     const response: ApiResponse<PaginatedResponse<ListingCard>> = {
       success: true,
@@ -193,8 +205,9 @@ export async function POST(request: Request) {
           : undefined,
         images: body.images?.length
           ? {
-              create: body.images.map((img: { url: string; caption?: string }, idx: number) => ({
+              create: body.images.map((img: { url: string; thumbnailUrl?: string; caption?: string }, idx: number) => ({
                 url: img.url,
+                thumbnailUrl: img.thumbnailUrl || null,
                 order: idx,
                 caption: img.caption || null,
               })),
@@ -218,6 +231,13 @@ export async function POST(request: Request) {
       where: { userId: session.user.id },
       data: { totalListings: { increment: 1 } },
     });
+
+    // Trigger wish matching engine for published listings (fire-and-forget)
+    if (shouldPublish) {
+      matchListingAgainstWishes(listing.id).catch(err =>
+        console.error('Wish matching failed:', err)
+      );
+    }
 
     return NextResponse.json<ApiResponse<{ id: string }>>(
       {

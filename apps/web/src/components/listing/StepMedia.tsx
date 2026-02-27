@@ -44,7 +44,7 @@ export function StepMedia({ data, onChange }: StepMediaProps) {
         const json = await res.json();
 
         if (json.success) {
-          newImages.push({ url: json.data.url, caption: '' });
+          newImages.push({ url: json.data.url, thumbnailUrl: json.data.thumbnailUrl, caption: '' });
         } else {
           setUploadError(json.error || 'Errore durante il caricamento');
         }

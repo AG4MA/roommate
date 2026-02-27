@@ -7,7 +7,7 @@ import {
   ChevronLeft, ChevronRight, Send, Save, Loader2,
   // Features
   Wifi, Sofa, Bath, Sun, Wind, Flame, WashingMachine, UtensilsCrossed,
-  Car, TreePine, Fence,
+  Car, Bicycle, TreePine, Fence,
   // Rules
   PawPrint, Cigarette, Heart, Users, Clock,
   // Media
@@ -35,7 +35,7 @@ const FEATURE_OPTIONS = [
   { key: 'washingMachine', label: 'Lavatrice', icon: WashingMachine },
   { key: 'dishwasher', label: 'Lavastoviglie', icon: UtensilsCrossed },
   { key: 'parking', label: 'Parcheggio', icon: Car },
-  { key: 'bikeParking', label: 'Parcheggio bici', icon: Bike },
+  { key: 'bikeParking', label: 'Parcheggio bici', icon: Bicycle },
   { key: 'garden', label: 'Giardino', icon: TreePine },
   { key: 'terrace', label: 'Terrazza', icon: Fence },
 ] as const;

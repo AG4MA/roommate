@@ -3,6 +3,8 @@ import type { ApiResponse } from '@roommate/shared';
 import { prisma } from '@roommate/database';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { eventBus, EVENTS } from '@/lib/realtime';
+import { notifyNewMessage } from '@/lib/notifications';
 
 interface MessageData {
   id: string;
@@ -113,6 +115,53 @@ export async function POST(
       createdAt: message.createdAt.toISOString(),
       readAt: null,
     };
+
+    // Emit real-time events
+    const messagePayload = {
+      id: message.id,
+      content: message.content,
+      senderId: message.senderId,
+      senderName: sender.name,
+      senderAvatar: sender.avatar,
+      createdAt: message.createdAt.toISOString(),
+    };
+
+    // Notify conversation SSE listeners
+    eventBus.publishToConversation(conversationId, EVENTS.NEW_MESSAGE, messagePayload);
+
+    // Notify other participants via their personal channel (for unread badge)
+    const participants = await prisma.conversationParticipant.findMany({
+      where: {
+        conversationId,
+        userId: { not: session.user.id },
+      },
+    });
+
+    for (const participant of participants) {
+      // Send unread count update
+      const unreadCount = await prisma.message.count({
+        where: {
+          conversation: {
+            participants: { some: { userId: participant.userId } },
+          },
+          senderId: { not: participant.userId },
+          readAt: null,
+        },
+      });
+
+      eventBus.publishToUser(participant.userId, EVENTS.UNREAD_COUNT, {
+        totalUnread: unreadCount,
+        conversationId,
+      });
+
+      // Send push notification (for offline users)
+      notifyNewMessage(
+        participant.userId,
+        sender.name,
+        message.content.substring(0, 100),
+        conversationId
+      ).catch(err => console.error('[NOTIFY ERROR]', err));
+    }
 
     return NextResponse.json<ApiResponse<MessageData>>(
       {

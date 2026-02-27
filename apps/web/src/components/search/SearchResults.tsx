@@ -187,7 +187,7 @@ function RoomCard({ room, matchScore }: { room: ListingCard; matchScore: number 
         <div className="w-52 h-44 relative shrink-0 bg-gray-200">
           {room.images.length > 0 && room.images[0].url !== '/placeholder.jpg' ? (
             <img
-              src={room.images[0].url}
+              src={room.images[0].thumbnailUrl || room.images[0].url}
               alt={room.title}
               className="w-full h-full object-cover"
             />

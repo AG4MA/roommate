@@ -4,6 +4,7 @@ import { createBookingSchema, calculateAge } from '@roommate/shared';
 import { prisma } from '@roommate/database';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { notifyBookingConfirmed, notifyBookingCancelled } from '@/lib/notifications';
 
 // Helper to build a TenantProfileCard from Prisma user+profile
 function buildTenantCard(tenant: any) {
@@ -53,6 +54,7 @@ function buildListingCard(listing: any) {
     maxRoommates: listing.roommates.length + 1,
     latitude: listing.latitude,
     longitude: listing.longitude,
+    landlordId: listing.landlordId ?? null,
   };
 }
 
@@ -86,6 +88,14 @@ const bookingIncludes = {
 
 export async function POST(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json<ApiResponse<null>>(
+        { success: false, error: 'Autenticazione richiesta' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
 
     // Validate core booking fields
@@ -98,15 +108,8 @@ export async function POST(request: Request) {
       return NextResponse.json(response, { status: 400 });
     }
 
-    // TODO: Replace with session auth (Phase 1)
-    const tenantId = body.tenantId as string | undefined;
-    if (!tenantId) {
-      const response: ApiResponse<null> = {
-        success: false,
-        error: 'Authentication required',
-      };
-      return NextResponse.json(response, { status: 401 });
-    }
+    // Use authenticated user's ID instead of body.tenantId
+    const tenantId = session.user.id;
 
     // Verify the slot exists and is still available
     const slot = await prisma.visitSlot.findUnique({
@@ -189,12 +192,9 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    // TODO: Replace with session auth (Phase 1)
-    const userId = searchParams.get('userId');
-    const role = searchParams.get('role') || 'tenant';
+    const session = await getServerSession(authOptions);
 
-    if (!userId) {
+    if (!session?.user?.id) {
       const response: ApiResponse<null> = {
         success: false,
         error: 'Authentication required',
@@ -202,13 +202,16 @@ export async function GET(request: Request) {
       return NextResponse.json(response, { status: 401 });
     }
 
-    const whereClause =
-      role === 'landlord'
-        ? { listing: { landlordId: userId } }
-        : { tenantId: userId };
+    const userId = session.user.id;
 
+    // Fetch all bookings where user is EITHER the tenant or the listing owner
     const bookings = await prisma.booking.findMany({
-      where: whereClause,
+      where: {
+        OR: [
+          { tenantId: userId },
+          { listing: { landlordId: userId } },
+        ],
+      },
       include: bookingIncludes,
       orderBy: { createdAt: 'desc' },
     });
@@ -296,10 +299,44 @@ export async function PATCH(request: Request) {
     if (status === 'CONFIRMED') updateData.confirmedAt = new Date();
     if (status === 'CANCELLED') updateData.cancelledAt = new Date();
 
-    await prisma.booking.update({
+    const updatedBooking = await prisma.booking.update({
       where: { id: bookingId },
       data: updateData,
+      include: {
+        tenant: { select: { email: true, name: true } },
+        listing: { select: { title: true, landlordId: true, landlord: { select: { email: true, name: true } } } },
+        slot: { select: { date: true, startTime: true, endTime: true, type: true } },
+      },
     });
+
+    // Send notifications for status changes (email + push)
+    if (status === 'CONFIRMED') {
+      const dateStr = new Date(updatedBooking.slot.date).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+      const timeStr = `${updatedBooking.slot.startTime} - ${updatedBooking.slot.endTime}`;
+      notifyBookingConfirmed(
+        booking.tenantId,
+        updatedBooking.listing.title,
+        dateStr,
+        timeStr,
+        updatedBooking.slot.type,
+        bookingId
+      ).catch(err => console.error('[NOTIFY ERROR]', err));
+    }
+
+    if (status === 'CANCELLED') {
+      // Notify tenant if landlord cancelled, and vice versa
+      const recipientId = isLandlord ? booking.tenantId : updatedBooking.listing.landlordId;
+      if (recipientId) {
+        const dateStr = new Date(updatedBooking.slot.date).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
+        notifyBookingCancelled(
+          recipientId,
+          updatedBooking.listing.title,
+          dateStr,
+          undefined,
+          bookingId
+        ).catch(err => console.error('[NOTIFY ERROR]', err));
+      }
+    }
 
     // Handle no-show: increment counter, block if ≥ 3
     if (status === 'NO_SHOW') {

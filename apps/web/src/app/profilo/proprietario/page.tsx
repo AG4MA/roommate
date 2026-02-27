@@ -42,10 +42,6 @@ export default function LandlordProfilePage() {
       router.push('/login');
       return;
     }
-    if (status === 'authenticated' && session.user.role !== 'landlord') {
-      router.push('/');
-      return;
-    }
     if (status === 'authenticated') {
       // Set name from session
       setFormData((prev) => ({ ...prev, name: session.user.name || '' }));

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import type { ApiResponse } from '@roommate/shared';
 import { updateTenantProfileSchema } from '@roommate/shared';
 import { prisma } from '@roommate/database';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 interface TenantProfileData {
   budgetMin: number | null;
@@ -21,17 +23,16 @@ interface TenantProfileData {
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    // TODO: Replace with session auth (Phase 1)
-    const userId = searchParams.get('userId');
-
-    if (!userId) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
       const response: ApiResponse<null> = {
         success: false,
-        error: 'Authentication required',
+        error: 'Autenticazione richiesta',
       };
       return NextResponse.json(response, { status: 401 });
     }
+
+    const userId = session.user.id;
 
     const profile = await prisma.tenantProfile.findUnique({
       where: { userId },
@@ -79,6 +80,15 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      const response: ApiResponse<null> = {
+        success: false,
+        error: 'Autenticazione richiesta',
+      };
+      return NextResponse.json(response, { status: 401 });
+    }
+
     const body = await request.json();
 
     const result = updateTenantProfileSchema.safeParse(body);
@@ -90,15 +100,7 @@ export async function PUT(request: Request) {
       return NextResponse.json(response, { status: 400 });
     }
 
-    // TODO: Replace with session auth (Phase 1)
-    const userId = body.userId as string | undefined;
-    if (!userId) {
-      const response: ApiResponse<null> = {
-        success: false,
-        error: 'Authentication required',
-      };
-      return NextResponse.json(response, { status: 401 });
-    }
+    const userId = session.user.id;
 
     const updateData: any = { ...result.data };
     if (updateData.moveInDate) {

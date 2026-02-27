@@ -136,10 +136,6 @@ export default function MyListingsPage() {
       router.push('/login');
       return;
     }
-    if (status === 'authenticated' && session.user.role !== 'landlord') {
-      router.push('/');
-      return;
-    }
     if (status === 'authenticated') {
       fetchListings();
     }

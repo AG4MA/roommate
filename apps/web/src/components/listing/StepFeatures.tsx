@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { ListingFormData } from '@/app/pubblica/page';
 import {
   Wifi, Sofa, Bath, Sun, Wind, Flame,
-  WashingMachine, UtensilsCrossed, Car, TreePine, Fence,
+  WashingMachine, UtensilsCrossed, Car, Bicycle, TreePine, Fence,
   PawPrint, Cigarette, Heart, Users, Clock, Info, X
 } from 'lucide-react';
 
@@ -22,7 +22,7 @@ const featureOptions = [
   { key: 'washingMachine', label: 'Lavatrice', icon: WashingMachine },
   { key: 'dishwasher', label: 'Lavastoviglie', icon: UtensilsCrossed },
   { key: 'parking', label: 'Parcheggio', icon: Car },
-  { key: 'bikeParking', label: 'Parcheggio bici', icon: Bike },
+  { key: 'bikeParking', label: 'Parcheggio bici', icon: Bicycle },
   { key: 'garden', label: 'Giardino', icon: TreePine },
   { key: 'terrace', label: 'Terrazza', icon: Fence },
 ] as const;

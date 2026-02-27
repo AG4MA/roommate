@@ -2,8 +2,14 @@ import { NextResponse } from 'next/server';
 import type { ApiResponse } from '@roommate/shared';
 import { registerSchema } from '@roommate/shared';
 import { prisma } from '@roommate/database';
+import { sendVerificationEmail, sendWelcomeEmail } from '@/lib/email';
+import { randomBytes } from 'crypto';
+import { checkRateLimit, rateLimits } from '@/lib/security';
 
 export async function POST(request: Request) {
+  const rateLimited = checkRateLimit(request, rateLimits.strict, 'register');
+  if (rateLimited) return rateLimited;
+
   try {
     const body = await request.json();
 
@@ -43,6 +49,26 @@ export async function POST(request: Request) {
         name,
       },
     });
+
+    // Create email verification token
+    const token = randomBytes(32).toString('hex');
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24); // 24 hour expiry
+
+    await prisma.verificationToken.create({
+      data: {
+        token,
+        type: 'EMAIL_VERIFICATION',
+        userId: user.id,
+        expiresAt,
+      },
+    });
+
+    // Send verification and welcome emails
+    await Promise.all([
+      sendVerificationEmail(email, name, token),
+      sendWelcomeEmail(email, name),
+    ]);
 
     const response: ApiResponse<{ id: string; email: string; name: string }> = {
       success: true,

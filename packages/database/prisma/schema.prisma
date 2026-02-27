@@ -23,6 +23,7 @@ model User {
   gender        Gender?
   occupation    Occupation?
   verified      Boolean   @default(false)
+  emailVerified Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -31,6 +32,7 @@ model User {
   blockedUntil  DateTime?
 
   // Relations
+  accounts         Account[]
   landlordProfile  LandlordProfile?
   tenantProfile    TenantProfile?
   listings         Listing[]
@@ -43,8 +45,34 @@ model User {
   groupMemberships GroupMembership[]
   certificationRequests CertificationRequest[]
   feedbacks        Feedback[]
+  verificationTokens VerificationToken[]
+  pushSubscriptions  PushSubscription[]
+  notificationPrefs  NotificationPreference?
 
   @@map("users")
+}
+
+// ==================== OAUTH ACCOUNTS ====================
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
 }
 
 model LandlordProfile {
@@ -252,12 +280,13 @@ model Listing {
 }
 
 model ListingImage {
-  id         String  @id @default(cuid())
-  listingId  String
-  listing    Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  url        String
-  order      Int     @default(0)
-  caption    String?
+  id           String  @id @default(cuid())
+  listingId    String
+  listing      Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  url          String
+  thumbnailUrl String?
+  order        Int     @default(0)
+  caption      String?
   
   @@map("listing_images")
 }
@@ -453,13 +482,23 @@ model Review {
   listing     Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
   authorId    String
   author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  bookingId   String   // must reference a COMPLETED booking
   
   rating      Int      // 1-5
   comment     String?
   
+  // Moderation
+  flagged     Boolean  @default(false)
+  flagReason  String?
+  flaggedBy   String?  // userId who flagged
+  hidden      Boolean  @default(false) // hidden by admin/landlord
+  
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   
   @@unique([listingId, authorId])
+  @@unique([bookingId])
+  @@index([listingId, hidden])
   @@map("reviews")
 }
 
@@ -674,5 +713,83 @@ model Feedback {
   createdAt DateTime @default(now())
 
   @@map("feedbacks")
+}
+
+// ==================== VERIFICATION TOKENS ====================
+
+model VerificationToken {
+  id        String              @id @default(cuid())
+  token     String              @unique
+  type      VerificationTokenType
+  userId    String
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime            @default(now())
+
+  @@index([token, type])
+  @@index([userId])
+  @@map("verification_tokens")
+}
+
+enum VerificationTokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+// ==================== PUSH NOTIFICATIONS ====================
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  endpoint  String   @unique
+  p256dh    String   // Public key
+  auth      String   // Auth secret
+  
+  // Device info
+  userAgent String?
+  platform  String?  // web, android, ios, expo
+  
+  // Expo push token (for mobile)
+  expoPushToken String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
+model NotificationPreference {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Channel preferences (global)
+  emailEnabled Boolean @default(true)
+  pushEnabled  Boolean @default(true)
+
+  // Per-event type preferences (true = enabled)
+  newMessage         Boolean @default(true)
+  interestReceived   Boolean @default(true)
+  interestApproved   Boolean @default(true)
+  bookingConfirmed   Boolean @default(true)
+  bookingCancelled   Boolean @default(true)
+  wishMatched        Boolean @default(true)
+  listingExpiring    Boolean @default(true)
+  listingExpired     Boolean @default(true)
+  groupInvite        Boolean @default(true)
+
+  // Quiet hours
+  quietHoursEnabled  Boolean @default(false)
+  quietHoursStart    String? // "22:00"
+  quietHoursEnd      String? // "08:00"
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("notification_preferences")
 }
 

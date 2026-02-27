@@ -3,6 +3,7 @@ import type { ApiResponse } from '@roommate/shared';
 import { prisma } from '@roommate/database';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { eventBus, EVENTS } from '@/lib/realtime';
 
 interface MessageData {
   id: string;
@@ -117,7 +118,7 @@ export async function GET(
     }
 
     // Mark unread messages as read
-    await prisma.message.updateMany({
+    const readResult = await prisma.message.updateMany({
       where: {
         conversationId: id,
         senderId: { not: session.user.id },
@@ -125,6 +126,15 @@ export async function GET(
       },
       data: { readAt: new Date() },
     });
+
+    // Emit read receipt event if messages were marked
+    if (readResult.count > 0) {
+      eventBus.publishToConversation(id, EVENTS.MESSAGE_READ, {
+        readBy: session.user.id,
+        readAt: new Date().toISOString(),
+        count: readResult.count,
+      });
+    }
 
     // Update last read timestamp
     await prisma.conversationParticipant.update({
